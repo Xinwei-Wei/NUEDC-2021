@@ -213,11 +213,11 @@ int OTSU(u16* array)
 {
 	int n0 = 0, n1 = 0;
 	float n = 0, w0 = 0, w1 = 0, u0 = 0, u1 = 0, g = 0, gmax = 0, k = 0;
-	for(int i = 0; i <= 255; i++)
+	for(int i = 10; i <= 40; i++)
 	{
 		for(int j = 0; j < 128; j++)
 		{
-			n = array[j] / 16.0;
+			n = array[j] / 100;
 			if(n < i)
 			{
 				n0++;
@@ -237,7 +237,7 @@ int OTSU(u16* array)
 		if(g > gmax)
 		{
 			gmax = g;
-			k = i * 16;
+			k = i * 100;
 		}
 		n0 = 0, n1 = 0, u0 = 0, u1 = 0;
 	}
