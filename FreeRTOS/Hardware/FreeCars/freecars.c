@@ -1,20 +1,21 @@
 #include "freecars.h"
+#include "pid.h"
 char uSendBuf[ScopeChaNum * 2]; //待发送给上位机的数据
 
 #if EN_USART2_RX   //如果使能了接收
 //串口1中断服务程序
 //注意,读取USARTx->SR能避免莫名其妙的错误
-u8 USART2_RX_BUF[USART2_REC_LEN];     //接收缓冲,最大USART_REC_LEN个字节.
+//u8 USART2_RX_BUF[USART2_REC_LEN];     //接收缓冲,最大USART_REC_LEN个字节.
 //接收状态
 //bit15，	接收完成标志
 //bit14，	接收到0x0d
 //bit13~0，	接收到的有效字节数目
-u16 USART2_RX_STA = 0;     //接收状态标记
+//u16 USART2_RX_STA = 0;     //接收状态标记
 
 #define UartRxBufferLen  100
 #define UartRxDataLen    41           //上位机发送浮点数据MCU接收，不要改
 #define UartRxCmdLen     7	      //上位机接收命令数据长度，不要改
-float a1, a2, b1, b2, c1, c2;
+//float a1, a2, b1, b2, c1, c2;
 typedef struct
 {
     int Stack;   //堆栈记录 总是指向下一个数据位
@@ -28,24 +29,27 @@ typedef struct
 SerialPortType SerialPortRx;
 double UartData[9];          //从上位机接收到的数据
 
+extern struct IncrementalPID left_pid, right_pid;
+extern int left_target_v;
+
 void Page0_debug(void)
 {
-
+	left_pid.kp = UartData[0];
 }
 
 void Page1_debug(void)
 {
-
+	left_pid.ki=UartData[1];
 }
 
 void Page2_debug(void)
 {
-
+	left_pid.kd=UartData[2];
 }
 
 void Page3_debug(void)
 {
-
+	left_target_v=UartData[3];
 }
 
 void Page4_debug(void)
@@ -106,122 +110,131 @@ void Initial_USART2(u32 baudrate)
     NVIC_InitTypeDef NVIC_InitStructure;
     USART_InitTypeDef USART_InitStructure;
 	
-    /* 使能 UART2 模块的时钟  使能 UART2对应的引脚端口PA的时钟*/
+    /* ?? UART2 ?????  ?? UART2???????PA???*/
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2, ENABLE);
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);//使能GPIOA时钟2,3(TX,RX)
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);//??GPIOA??2,3(TX,RX)
 
-    GPIO_PinAFConfig(GPIOA, GPIO_PinSource2, GPIO_AF_USART2); //GPIOA2复用为USART2     TX
-    GPIO_PinAFConfig(GPIOA, GPIO_PinSource3, GPIO_AF_USART2); //GPIOA3复用为USART2     RX
-    //USART2端口配置
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2 | GPIO_Pin_3; //GPIOA2与GPIOA3
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;//复用功能
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;	//速度50MHz
-    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP; //推挽复用输出
-    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP; //上拉
-    GPIO_Init(GPIOA, &GPIO_InitStructure); //初始化PA2，PA3
-    //USART2初始化设置
-    USART_InitStructure.USART_BaudRate = baudrate;//波特率设置
-    USART_InitStructure.USART_WordLength = USART_WordLength_8b;//字长为8位数据格式
-    USART_InitStructure.USART_StopBits = USART_StopBits_1;//一个停止位
-    USART_InitStructure.USART_Parity = USART_Parity_No;//无奇偶校验位
-    USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;//无硬件数据流控制
-    USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;	//收发模式
-    USART_Init(USART2, &USART_InitStructure); //初始化串口2
+    GPIO_PinAFConfig(GPIOA, GPIO_PinSource2, GPIO_AF_USART2); //GPIOA2???USART2     TX
+    GPIO_PinAFConfig(GPIOA, GPIO_PinSource3, GPIO_AF_USART2); //GPIOA3???USART2     RX
+    //USART2????
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2 | GPIO_Pin_3; //GPIOA2?GPIOA3
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;//????
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;	//??50MHz
+    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP; //??????
+    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP; //??
+    GPIO_Init(GPIOA, &GPIO_InitStructure); //???PA2,PA3
+    //USART2?????
+    USART_InitStructure.USART_BaudRate = baudrate;//?????
+    USART_InitStructure.USART_WordLength = USART_WordLength_8b;//???8?????
+    USART_InitStructure.USART_StopBits = USART_StopBits_1;//?????
+    USART_InitStructure.USART_Parity = USART_Parity_No;//??????
+    USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;//????????
+    USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;	//????
+    USART_Init(USART2, &USART_InitStructure); //?????2
 
-    USART_Cmd(USART2, ENABLE);  //使能串口2
+    USART_Cmd(USART2, ENABLE);  //????2
 
-    USART_ITConfig(USART2, USART_IT_RXNE, ENABLE);//开启相关中断
-    //Usart2 NVIC 配置
-    NVIC_InitStructure.NVIC_IRQChannel = USART2_IRQn;//串口2中断通道
-    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0; //抢占优先级0
-    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;		//子优先级0
-    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;			//IRQ通道使能
-    NVIC_Init(&NVIC_InitStructure);	//根据指定的参数初始化VIC寄存器、
+    USART_ITConfig(USART2, USART_IT_RXNE, ENABLE);//??????
+    //Usart2 NVIC ??
+    NVIC_InitStructure.NVIC_IRQChannel = USART2_IRQn;//??2????
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 2; //?????0
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 2;		//????0
+    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;			//IRQ????
+    NVIC_Init(&NVIC_InitStructure);	//??????????VIC????
 
 }
 
 /******************************************************************
-*上位机发送数据给单片机，
-*4bytes校验字头
-*4*9bytes数据位（发送通道1--9的数据，每通道数据4位）
-*1byte校验位
+*???????????,
+*4bytes????
+*4*9bytes???(????1--9???,?????4?)
+*1byte???
 *******************************************************************/
-//void USART2_IRQHandler(void)
-//{
-//    u32 i = 0, b = 0, d;
-//    u32 dat_temp;
+void USART2_IRQHandler(void)
+{
+    u32 i = 0, b = 0, d;
+    u32 dat_temp;
 
-////    Buzzer_GetOffSetTmOver();//看进入这个部分没有
-//    if(USART_GetITStatus(USART2, USART_IT_RXNE) != RESET) //接收到了数据
-//    {
-//        SerialPortRx.Data = USART_ReceiveData(USART2);
-//        if( SerialPortRx.Stack < UartRxBufferLen )  //Stack取（0~Len-1）
-//            SerialPortRx.Buffer[SerialPortRx.Stack++] = SerialPortRx.Data;//stack是指向下一个要存放数据的地方
-//        //UartRxDataLen 41个数为一帧   41=4(校验位4bytes)+9*4(9个通道double型)+1（byte校验位）
-//        if( SerialPortRx.Stack >= UartRxDataLen
-//                && SerialPortRx.Buffer[SerialPortRx.Stack - UartRxDataLen]  == 0xff //校验字头
-//                && SerialPortRx.Buffer[SerialPortRx.Stack - UartRxDataLen + 1] == 0x55
-//                && SerialPortRx.Buffer[SerialPortRx.Stack - UartRxDataLen + 2] == 0xaa
-//                && SerialPortRx.Buffer[SerialPortRx.Stack - UartRxDataLen + 3] == 0x10 )
-//        {   //double data 9个通道数据校验   (接收的一个数据通道32位)
-//            SerialPortRx.Check = 0;
-//            b = SerialPortRx.Stack - UartRxDataLen; //起始位，即校验字头所在位
+//    Buzzer_GetOffSetTmOver();//?????????
+	
+    if(USART_GetITStatus(USART2, USART_IT_RXNE) != RESET) //??????
+    {
+		PAout(6) = !PAout(6);
+        SerialPortRx.Data = USART_ReceiveData(USART2);
+        if( SerialPortRx.Stack < UartRxBufferLen )  //Stack?(0~Len-1)
+            SerialPortRx.Buffer[SerialPortRx.Stack++] = SerialPortRx.Data;//stack??????????????
+        //UartRxDataLen 41?????   41=4(???4bytes)+9*4(9???double?)+1(byte???)
+        if( SerialPortRx.Stack >= UartRxDataLen
+                && SerialPortRx.Buffer[SerialPortRx.Stack - UartRxDataLen]  == 0xff //????
+                && SerialPortRx.Buffer[SerialPortRx.Stack - UartRxDataLen + 1] == 0x55
+                && SerialPortRx.Buffer[SerialPortRx.Stack - UartRxDataLen + 2] == 0xaa
+                && SerialPortRx.Buffer[SerialPortRx.Stack - UartRxDataLen + 3] == 0x10 )
+        {   //double data 9???????   (?????????32?)
+            SerialPortRx.Check = 0;
+            b = SerialPortRx.Stack - UartRxDataLen; //???,????????
 
-//            for(i = b; i < SerialPortRx.Stack - 1; i++) //除去校验位外的位进行校验
-//            {
-//                SerialPortRx.Check += SerialPortRx.Buffer[i];//校验
-//            }
+            for(i = b; i < SerialPortRx.Stack - 1; i++) //????????????
+            {
+                SerialPortRx.Check += SerialPortRx.Buffer[i];//??
+            }
 
-//            //自己算出的校验位与接收到的校验位进行对比
-//            if( SerialPortRx.Check == SerialPortRx.Buffer[SerialPortRx.Stack - 1] )
-//            {
-//                for(i = 0; i < 9; i++)
-//                {
-//                    //32位 高16位存整数部分，低16位存小数部分
-//                    dat_temp = SerialPortRx.Buffer[b + i * 4 + 4] * 0x1000000L
-//                               + SerialPortRx.Buffer[b + i * 4 + 5] * 0x10000L
-//                               + SerialPortRx.Buffer[b + i * 4 + 6] * 0x100L
-//                               + SerialPortRx.Buffer[b + i * 4 + 7];
+            //????????????????????
+            if( SerialPortRx.Check == SerialPortRx.Buffer[SerialPortRx.Stack - 1] )
+            {
+                for(i = 0; i < 9; i++)
+                {
+                    //32? ?16??????,?16??????
+                    dat_temp = SerialPortRx.Buffer[b + i * 4 + 4] * 0x1000000L
+                               + SerialPortRx.Buffer[b + i * 4 + 5] * 0x10000L
+                               + SerialPortRx.Buffer[b + i * 4 + 6] * 0x100L
+                               + SerialPortRx.Buffer[b + i * 4 + 7];
 
-//                    if(dat_temp > 0x7FFFFFFF)  d = 0x7FFFFFFF - dat_temp  ; //负数
-//                    else       d = dat_temp  ;
+                    if(dat_temp > 0x7FFFFFFF)  d = 0x7FFFFFFF- dat_temp  ; //??
+                    else       d = dat_temp  ;
 
-//                    UartData[i] = d;
-//                    UartData[i] /= 65536.0;
+                    UartData[i] = d;
+                    UartData[i] /= 65536.0;
+										
 
-//                }
-//                UartDebug();  //转去处理，把受到的数据付给变量
+                }
+								Page0_debug();
+								Page1_debug();
+								Page2_debug();
+								Page3_debug();
+								Page4_debug();
+								Page5_debug();
+								Page6_debug();
+								Page7_debug();
+            }
+            SerialPortRx.Stack = 0;
+        }
+        //????????,?????
+        else if(   SerialPortRx.Stack >= UartRxCmdLen //UartRxCmdLen = 7?????
+                   && SerialPortRx.Buffer[SerialPortRx.Stack - UartRxCmdLen]  == 0xff
+                   && SerialPortRx.Buffer[SerialPortRx.Stack - UartRxCmdLen + 1] == 0x55
+                   && SerialPortRx.Buffer[SerialPortRx.Stack - UartRxCmdLen + 2] == 0xaa
+                   && SerialPortRx.Buffer[SerialPortRx.Stack - UartRxCmdLen + 3] == 0x77 ) //cmd
+        {
+            SerialPortRx.Check = 0;
+            b = SerialPortRx.Stack - UartRxCmdLen; //???
+            for(i = b; i < SerialPortRx.Stack - 1; i++) //???????????
+            {
+                SerialPortRx.Check += SerialPortRx.Buffer[i];//??
+            }
+            if( SerialPortRx.Check == SerialPortRx.Buffer[SerialPortRx.Stack - 1] )
+            {   //????
+                //UartCmd(UartCmdNum,UartCmdData);//????????,??MCU????
+            }
+            SerialPortRx.Stack = 0;
+        }
+    }
 
-//            }
-//            SerialPortRx.Stack = 0;
-//        }
-//        //上位机发过来命令，这里没用到
-//        else if(   SerialPortRx.Stack >= UartRxCmdLen //UartRxCmdLen = 7个数为一帧
-//                   && SerialPortRx.Buffer[SerialPortRx.Stack - UartRxCmdLen]  == 0xff
-//                   && SerialPortRx.Buffer[SerialPortRx.Stack - UartRxCmdLen + 1] == 0x55
-//                   && SerialPortRx.Buffer[SerialPortRx.Stack - UartRxCmdLen + 2] == 0xaa
-//                   && SerialPortRx.Buffer[SerialPortRx.Stack - UartRxCmdLen + 3] == 0x77 ) //cmd
-//        {
-//            SerialPortRx.Check = 0;
-//            b = SerialPortRx.Stack - UartRxCmdLen; //起始位
-//            for(i = b; i < SerialPortRx.Stack - 1; i++) //除校验位外的位进行校验
-//            {
-//                SerialPortRx.Check += SerialPortRx.Buffer[i];//校验
-//            }
-//            if( SerialPortRx.Check == SerialPortRx.Buffer[SerialPortRx.Stack - 1] )
-//            {   //校验成功
-//                //UartCmd(UartCmdNum,UartCmdData);//处理接收到的命令，付给MCU命令变量
-//            }
-//            SerialPortRx.Stack = 0;
-//        }
-//    }
+    else        //?????????????????
+    {
+        SerialPortRx.Stack = 0;
+    }
 
-//    else        //接收到的数据超过接收上限则堆栈清空
-//    {
-//        SerialPortRx.Stack = 0;
-//    }
-
-//}
+}
 
 #endif
 
