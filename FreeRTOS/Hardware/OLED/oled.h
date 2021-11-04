@@ -74,6 +74,7 @@
 
 //OLED¿ØÖÆÓÃº¯Êý
 void OLED_ShowString(u8 x,u8 y,u8 *chr,u8 Char_Size);
+
 void OLED_Init(void);
 void test (void);
 void delay_us(u32 count);
