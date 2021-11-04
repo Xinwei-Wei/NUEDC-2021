@@ -47,7 +47,7 @@ static	void	TestLED(void);
 */
 struct IncrementalPID left_pid, right_pid;
 double left_pwm, right_pwm;
-double left_target_v = 100, right_target_v = 300;
+double left_target_v = 400, right_target_v = 300;
 
 
 /*
@@ -171,7 +171,7 @@ static void vTask_Wheel(void *pvParameters)
 		//left_pwm = 70;
 		
 		Control_Dir(2, LIMIT(-99, left_pwm,  99));
-		//Control_Dir(2, LIMIT(-99, right_pwm, 99));
+		Control_Dir(3, LIMIT(-99, right_pwm, 99));
 
 		
 		vTaskDelay(time);

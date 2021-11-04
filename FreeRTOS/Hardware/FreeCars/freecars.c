@@ -1,5 +1,6 @@
 #include "freecars.h"
 #include "pid.h"
+#include "includes.h"
 char uSendBuf[ScopeChaNum * 2]; //待发送给上位机的数据
 
 #if EN_USART2_RX   //如果使能了接收
@@ -154,7 +155,6 @@ void USART2_IRQHandler(void)
 {
     u32 i = 0, b = 0, d;
     u32 dat_temp;
-
 //    Buzzer_GetOffSetTmOver();//?????????
 	
     if(USART_GetITStatus(USART2, USART_IT_RXNE) != RESET) //??????
@@ -233,7 +233,6 @@ void USART2_IRQHandler(void)
     {
         SerialPortRx.Stack = 0;
     }
-
 }
 
 #endif
