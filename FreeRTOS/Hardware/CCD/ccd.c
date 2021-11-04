@@ -15,6 +15,7 @@
 #define threshold1  2500
 #define line3_wide  30
 #define line5_wide  70
+#define threshold_black 1500
 
 u8 ccd_finish_flag;
 u16 ccd1_data[128];
@@ -141,7 +142,7 @@ int CCD_find_Line(int center, int threshold)
 	
 	for(i=center-2; i<=center+2; i++)
 	{
-		if(ccd1_data[i] > threshold)
+		if(ccd1_data[i] > threshold || ccd1_data[i]< threshold_black)
 		{
 			emergency_flag = 1;
 			break;
@@ -152,7 +153,7 @@ int CCD_find_Line(int center, int threshold)
 	{
 		for(i=center-3; i>=0; i--)
 		{
-			if(ccd1_data[i] > threshold)
+			if(ccd1_data[i] > threshold || ccd1_data[i]< threshold_black)
 				edge_count++;
 			if(edge_count == 3)
 				break;
@@ -162,7 +163,7 @@ int CCD_find_Line(int center, int threshold)
 		
 		for(i=center+3; i<=127; i++)
 		{
-			if(ccd1_data[i] > threshold)
+			if(ccd1_data[i] > threshold || ccd1_data[i]< threshold_black)
 				edge_count++;
 			if(edge_count == 3)
 				break;
@@ -188,7 +189,7 @@ int CCD_find_Line(int center, int threshold)
 		emergency_count = 0;
 		for(i=0; i<=127; i++)
 		{
-			if(ccd1_data[i] <= threshold)
+			if(ccd1_data[i] <= threshold && ccd1_data[i] > threshold_black)
 			{
 				emergency_count++;
 			}
