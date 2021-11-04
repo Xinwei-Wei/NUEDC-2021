@@ -63,7 +63,7 @@ void CCD_IO(void)
 //  @since      v1.0
 //  Sample usage:               在isr.c里面先创建对应的中断函数，然后调用该函数(之后别忘记清除中断标志位)
 //-------------------------------------------------------------------------------------------------------------------
-void CCD1_Collect(void)
+void CCD_Collect(void)
 {
     u8 i = 0;
 
@@ -86,28 +86,7 @@ void CCD1_Collect(void)
     ccd_finish_flag = 1;
 }
 
-void CCD2_Collect(void)
-{
-    u8 i = 0;
 
-	CCD2_CLK=1;
-	CCD2_SI=0;
-	CCD2_CLK=0;
-	CCD2_SI=1;
-	CCD2_CLK=1;
-	CCD2_SI=0;
-
-    for(i=0;i<128;i++)
-    {
-		CCD2_CLK=0;
-        //这里可以同时采集两个CCD数据
-		ccd2_data[i] = Get_Adc2();
-		CCD2_CLK=1;
-    }
-
-    //采集完成标志位置1
-    ccd_finish_flag = 1;
-}
 //-------------------------------------------------------------------------------------------------------------------
 //  @brief      TSL1401线阵CCD图像发送至上位机查看图像
 //  @param      uart_n          串口号
@@ -191,6 +170,10 @@ int CCD_find_Line(int center, int threshold)
 		edge_right = i-3;
 		edge_count = 0;
 		
+		if(edge_left < 5)
+		{
+			return 66;
+		}
 		
 		center = (edge_left + edge_right) / 2 + 0.5;
 		center = LIMIT(3, center, 124);
@@ -223,6 +206,111 @@ int CCD_find_Line(int center, int threshold)
 		return center;
 	}
 }
+
+//int CCD2_find_Line(int center, int threshold)
+//{
+//	int i, emergency_flag = 0, edge_count = 0, edge_left = 0, edge_right = 127;
+//	int emergency_count = 0, emergency_max = 0, emergency_right = 0;
+//	static int time = 0;
+//	
+//	for(i=center-2; i<=center+2; i++)
+//	{
+//		if(ccd2_data[i] > threshold)
+//		{
+//			emergency_flag = 1;
+//			break;
+//		}
+//	}
+//	
+//	if(emergency_flag == 0)
+//	{
+//		for(i=center-3; i>=0; i--)
+//		{
+//			if(ccd2_data[i] > threshold)
+//				edge_count++;
+//			if(edge_count == 3)
+//				break;
+//		}
+//		
+//		edge_left = i+3;
+//		edge_count = 0;
+//		
+//		for(i=center+3; i<=127; i++)
+//		{
+//			if(ccd2_data[i] > threshold)
+//				edge_count++;
+//			if(edge_count == 3)
+//				break;
+//		}
+//		
+//			
+//		edge_right = i-3;
+//		edge_count = 0;
+//		
+//		if(edge_right - edge_left > stop_line)
+//		{
+//			if(EN_EN_stop){	
+//				if(targetSpeedY > 40){
+//					if(edge_right - edge_left > 50){
+//						//EN_EN_stop = 0;
+//						//targetSpeedY = 20;
+//						slow_down_judge = 1;
+//					}
+//				}
+//				else
+//				{	
+//					EN_EN_stop = 0;					
+//					EN_stop = 1;
+//				}
+//			}	
+//			time = 0;
+//		}
+//		else{
+//			if(time>2){
+//				if(EN_stop){
+//					//targetSpeedY = 0;
+//					EN_stop=0;
+//					stop_line = line3_wide;
+//					stop_judge=1;
+//				}
+//				EN_EN_stop = 1;
+//			}
+//			time++;
+//		}
+//		
+//		center = (edge_left + edge_right) / 2 + 0.5;
+//		center = LIMIT(3, center, 124);
+//		if(edge_left<4)
+//			center = edge_right-15;
+//		return center;
+//	}
+//	else
+//	{
+//		emergency_max = 0;
+//		emergency_flag = 0;
+//		emergency_count = 0;
+//		for(i=0; i<=127; i++)
+//		{
+//			if(ccd2_data[i] <= threshold)
+//			{
+//				emergency_count++;
+//			}
+//			else
+//			{				
+//				if(emergency_count > emergency_max)
+//				{
+//					emergency_max = emergency_count;
+//					emergency_right = i-1;
+//				}
+//				emergency_count = 0;
+//			}
+//		}
+//		if(emergency_max >= 3)
+//			center = emergency_right - emergency_max/2 - 0.5;
+//		center = LIMIT(3, center, 124);
+//		return center;
+//	}
+//}
 
 int Find_Line_first(u16 *data, int threshold)
 {

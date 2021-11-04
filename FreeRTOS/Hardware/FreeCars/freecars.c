@@ -30,27 +30,21 @@ typedef struct
 SerialPortType SerialPortRx;
 double UartData[9];          //从上位机接收到的数据
 
-extern struct IncrementalPID left_pid, right_pid;
-extern int left_target_v;
 
 void Page0_debug(void)
 {
-	left_pid.kp = UartData[0];
 }
 
 void Page1_debug(void)
 {
-	left_pid.ki=UartData[1];
 }
 
 void Page2_debug(void)
 {
-	left_pid.kd=UartData[2];
 }
 
 void Page3_debug(void)
 {
-	left_target_v=UartData[3];
 }
 
 void Page4_debug(void)

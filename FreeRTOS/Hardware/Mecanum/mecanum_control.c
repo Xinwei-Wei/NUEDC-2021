@@ -16,13 +16,11 @@
 
 #define valueK 1
 
-float * moto_caculate(float pwmx, float pwmy, float pwmw)
+double *moto_caculate(float pwmy, float pwmw)
 {
-    static float Vw[5] = {0,0,0,0,0};
-    Vw[0] = -pwmx+pwmy+pwmw*valueK;	//电机转速计算
-    Vw[1] = pwmx+pwmy+pwmw*valueK;
-    Vw[2] = pwmx-pwmy+pwmw*valueK;
-    Vw[3] = -pwmx-pwmy+pwmw*valueK;
+    static double Vw[2] = {0,0};
+    Vw[0] = pwmy+pwmw*valueK;	//电机转速计算
+    Vw[1] = pwmy-pwmw*valueK;
     return Vw;
 }
 
@@ -33,21 +31,21 @@ void Control_Dir(u8 number,float pwm)
 	{
 		case 1:
 			if(pwm>0)
-				Mecanum1_Dir_Pin = 0;
+				Mecanum1_Dir_Pin = 1;
 			else
 			{
 				pwm *= -1;
-				Mecanum1_Dir_Pin = 1;
+				Mecanum1_Dir_Pin = 0;
 			}
 			Mecanum_PWM_SetDuty(1, pwm);
 			break ;
 		case 2:
 			if(pwm>0)
-				Mecanum2_Dir_Pin = 0;
+				Mecanum2_Dir_Pin = 1;
 			else
 			{
 				pwm *= -1;
-				Mecanum2_Dir_Pin = 1;
+				Mecanum2_Dir_Pin = 0;
 			}
 			Mecanum_PWM_SetDuty(2, pwm);
 			break ;

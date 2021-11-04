@@ -7,7 +7,8 @@
 */
 
 #define		vTask_USART_PRIO			1
-#define		vTask_Wheel_PRIO			5
+#define		vTask_Wheel_PRIO			4
+#define		vTask_CCD_PRIO		 		5
 #define		vTask_Servo_PRIO		 	2
 
 /*
@@ -20,6 +21,7 @@ static	void	AppTaskCreate		(void);
 static	void	vTask_USART			(void *pvParameters);
 static	void	vTask_Wheel			(void *pvParameters);
 static	void	vTask_Servo			(void *pvParameters);
+static	void	vTask_CCD			(void *pvParameters);
 
 /*
 **********************************************************************************************************
@@ -30,6 +32,7 @@ static	void	vTask_Servo			(void *pvParameters);
 static	TaskHandle_t	xHandleTask_USART			= NULL;
 static	TaskHandle_t	xHandleTask_Wheel			= NULL;
 static	TaskHandle_t	xHandleTask_Servo			= NULL;
+static	TaskHandle_t	xHandleTask_CCD 			= NULL;
 
 /*
 **********************************************************************************************************
@@ -47,7 +50,11 @@ static	void	TestLED(void);
 */
 struct IncrementalPID left_pid, right_pid;
 double left_pwm, right_pwm;
-double left_target_v = 400, right_target_v = 300;
+double *target_v;
+extern u16 ccd1_data[128];
+int ccd1_center;
+int CCD1_p = 50;
+int targetSpeedW, targetSpeedY;
 
 
 /*
@@ -100,10 +107,11 @@ void Periph_Init()
 	//Initial_USART2(115200);
 	TIM8_PWM_Init(500-1, 33-1);
 	Encoder_Init_TIM2();
-	Encoder_Init_TIM3();
+	Encoder_Init_TIM4();
 	Motor_IO_Init();
 	Servo_Init();
 	LED_Init();
+	CCD_Init();
 	
 	taskEXIT_CRITICAL();
 }
@@ -124,10 +132,8 @@ static void vTask_USART(void *pvParameters)
 	{
 //		TestLED();
 //		vTaskDelayUntil(&xLastWakeTime, 2000);
-		push(1, left_pid.error+left_target_v);
-		push(2, left_target_v);
-		sendDataToScope();
-		vTaskDelay(100);
+		
+		vTaskDelay(1000);
 	}
 }
 
@@ -143,6 +149,25 @@ static void vTask_Servo(void *pvParameters)
 	}
 }
 
+static void vTask_CCD(void *pvParameters)
+{
+	TickType_t xLastWakeTime;
+	
+	vTaskDelay(1000);
+	
+	for(;;)
+	{
+		CCD_Collect();
+		ccd1_center = CCD_find_Line(ccd1_center, THRESHOLD);
+		ccd_send_data(USART1, ccd1_data);
+		printf("%d\r\n",ccd1_center);
+		if(ccd1_center > 66 || ccd1_center < 62)
+			targetSpeedW = (ccd1_center - 64) * CCD1_p;
+		else targetSpeedW = 0;
+		vTaskDelay(20);
+	}
+}
+
 static void vTask_Wheel(void *pvParameters)
 {
 	TickType_t xLastWakeTime;
@@ -154,31 +179,31 @@ static void vTask_Wheel(void *pvParameters)
 	
 	for(;;)
 	{
+		targetSpeedY = 50;
+		target_v = moto_caculate(targetSpeedY, 0);
 		if(left_pwm < 0)
-			left_pid.error = (left_target_v)+((TIM2->CNT<0xffffffff-TIM2->CNT) ? TIM2->CNT : 0xffffffff-TIM2->CNT)*4.08/time;
+			left_pid.error = (target_v[0])+((TIM2->CNT<0xffffffff-TIM2->CNT) ? TIM2->CNT : 0xffffffff-TIM2->CNT)*4.08/time;
 		else
-			left_pid.error = (left_target_v)-((TIM2->CNT<0xffffffff-TIM2->CNT) ? TIM2->CNT : 0xffffffff-TIM2->CNT)*4.08/time;	
+			left_pid.error = (target_v[0])-((TIM2->CNT<0xffffffff-TIM2->CNT) ? TIM2->CNT : 0xffffffff-TIM2->CNT)*4.08/time;	
 		TIM2->CNT = 0;
-
 		if(right_pwm < 0)
-			right_pid.error = (right_target_v)+((TIM3->CNT<0xffff-TIM3->CNT) ? TIM3->CNT : 0xffff-TIM3->CNT)*4.08/time;
+			right_pid.error = (target_v[1])+((TIM4->CNT<0xffff-TIM4->CNT) ? TIM4->CNT : 0xffff-TIM4->CNT)*4.08/time;
 		else
-			right_pid.error = (right_target_v)-((TIM3->CNT<0xffff-TIM3->CNT) ? TIM3->CNT : 0xffff-TIM3->CNT)*4.08/time;	
-		TIM3->CNT = 0;
+			right_pid.error = (target_v[1])-((TIM4->CNT<0xffff-TIM4->CNT) ? TIM4->CNT : 0xffff-TIM4->CNT)*4.08/time;	
+		TIM4->CNT = 0;
 		
 		left_pwm  += incremental_pid(&left_pid);
-		if((left_pwm > 0 && left_target_v < 0) || (left_pwm < 0 && left_target_v > 0)){
+		if((left_pwm > 0 && target_v[0] < 0) || (left_pwm < 0 && target_v[0] > 0)){
 			left_pwm = 0;
 		}
 		right_pwm += incremental_pid(&right_pid);
-		if((right_pwm > 0 && right_target_v < 0) || (right_pwm < 0 && right_target_v > 0)){
+		if((right_pwm > 0 && target_v[1] < 0) || (right_pwm < 0 && target_v[1] > 0)){
 			right_pwm = 0;
 		}
-		//left_pwm = 70;
-		
+		//left_pwm=0;
 		Control_Dir(2, LIMIT(-99, left_pwm,  99));
 		Control_Dir(3, LIMIT(-99, right_pwm, 99));
-
+	
 		
 		vTaskDelay(time);
 	}
@@ -228,6 +253,13 @@ static void AppTaskCreate (void)
                  NULL,						/* 任务参数  */
                  vTask_Servo_PRIO,			/* 任务优先级*/
                  &xHandleTask_Servo );		/* 任务句柄  */
+	
+	xTaskCreate( vTask_CCD,					/* 任务函数  */
+                 "vTask CCD",				/* 任务名    */
+                 512,						/* 任务栈大小，单位word，4字节 */
+                 NULL,						/* 任务参数  */
+                 vTask_CCD_PRIO,			/* 任务优先级*/
+                 &xHandleTask_CCD );		/* 任务句柄  */
 	
 }
 /***************************** (END OF FILE) *********************************/
