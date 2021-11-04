@@ -53,7 +53,7 @@ double left_pwm, right_pwm;
 double *target_v;
 extern u16 ccd1_data[128];
 int ccd1_center;
-int CCD1_p = 50;
+int CCD1_p = 5;
 int targetSpeedW, targetSpeedY;
 
 
@@ -159,7 +159,7 @@ static void vTask_CCD(void *pvParameters)
 	{
 		CCD_Collect();
 		ccd1_center = CCD_find_Line(ccd1_center, THRESHOLD);
-		ccd_send_data(USART1, ccd1_data);
+		//ccd_send_data(USART1, ccd1_data);
 		printf("%d\r\n",ccd1_center);
 		if(ccd1_center > 66 || ccd1_center < 62)
 			targetSpeedW = (ccd1_center - 64) * CCD1_p;
@@ -180,7 +180,7 @@ static void vTask_Wheel(void *pvParameters)
 	for(;;)
 	{
 		targetSpeedY = 50;
-		target_v = moto_caculate(targetSpeedY, 0);
+		target_v = moto_caculate(targetSpeedY, targetSpeedW);
 		if(left_pwm < 0)
 			left_pid.error = (target_v[0])+((TIM2->CNT<0xffffffff-TIM2->CNT) ? TIM2->CNT : 0xffffffff-TIM2->CNT)*4.08/time;
 		else
