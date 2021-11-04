@@ -11,6 +11,7 @@ u16 Get_Adc_Average(u8 ch,u8 times);
 void ccd_init(void);
 void ccd_send_data(USART_TypeDef* uart_n ,u16 *dat);
 int find_line(void);
+int OTSU(u16* array);
 void CCD_IO(void);
 void CCD_Collect(void);
 void CCD_Init(void);

@@ -137,6 +137,8 @@ int CCD_find_Line(int center, int threshold)
 	int i, emergency_flag = 0, edge_count = 0, edge_left = 0, edge_right = 127;
 	int emergency_count = 0, emergency_max = 0, emergency_right = 0;
 	
+	threshold = OTSU(ccd1_data);
+	
 	for(i=center-2; i<=center+2; i++)
 	{
 		if(ccd1_data[i] > threshold)
@@ -205,6 +207,41 @@ int CCD_find_Line(int center, int threshold)
 		center = LIMIT(3, center, 124);
 		return center;
 	}
+}
+
+int OTSU(u16* array)
+{
+	int n0 = 0, n1 = 0;
+	float n = 0, w0 = 0, w1 = 0, u0 = 0, u1 = 0, g = 0, gmax = 0, k = 0;
+	for(int i = 0; i <= 255; i++)
+	{
+		for(int j = 0; j < 128; j++)
+		{
+			n = array[j] / 16.0;
+			if(n < i)
+			{
+				n0++;
+				u0 += n;
+			}
+			else
+			{
+				n1++;
+				u1 += n;
+			}
+		}
+		w0 = n0/128.0;
+		w1 = n1/128.0;
+		u0 /= n0;
+		u1 /= n1;
+		g = w0 * w1 * pow((u0 - u1), 2);
+		if(g > gmax)
+		{
+			gmax = g;
+			k = i * 16;
+		}
+		n0 = 0, n1 = 0, u0 = 0, u1 = 0;
+	}
+	return k;
 }
 
 //int CCD2_find_Line(int center, int threshold)
