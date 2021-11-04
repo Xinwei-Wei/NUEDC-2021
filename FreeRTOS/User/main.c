@@ -167,7 +167,13 @@ static void vTask_Wheel(void *pvParameters)
 		TIM3->CNT = 0;
 		
 		left_pwm  += incremental_pid(&left_pid);
+		if((left_pwm > 0 && left_target_v < 0) || (left_pwm < 0 && left_target_v > 0)){
+			left_pwm = 0;
+		}
 		right_pwm += incremental_pid(&right_pid);
+		if((right_pwm > 0 && right_target_v < 0) || (right_pwm < 0 && right_target_v > 0)){
+			right_pwm = 0;
+		}
 		//left_pwm = 70;
 		
 		Control_Dir(2, LIMIT(-99, left_pwm,  99));
