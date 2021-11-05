@@ -222,63 +222,64 @@ int gray_avr(int gray0, int gray1, int gray2)
 
 int LXS_find_Line(int center, u16* ccd_data)
 {
-	int emergency_flag = 0, edge_count = 0, edge_left = 0, edge_right = 127, gray_left = 0, gray_right = 0, gray_left_last = 0, gray_right_last = 0;
+	int emergency_flag = 1, edge_count = 0, edge_left = 0, edge_right = 127, gray_left = 0, gray_right = 0, gray_left_last = 0, gray_right_last = 0;
 	int black_num = 0, emergency_num = 0, emergency_num_last = 0, emergency_left = 0, emergency_right = 127;
 	float black_perc = 0;
 	int edge_left_flag = 0, edge_right_flag = 1;	//左右边界重捕获指示
 	
-	int threshold = OTSU(ccd_data);
+//	int threshold = OTSU(ccd_data);
+	int threshold = 1500;
 	
-	for(int i = 0; i < 128; i++)
-	{
-		if(ccd_data[i] < threshold)
-			black_num++;
-	}
-	black_perc = black_num*100/128.0;
+//	for(int i = 0; i < 128; i++)
+//	{
+//		if(ccd_data[i] < threshold)
+//			black_num++;
+//	}
+//	black_perc = black_num*100/128.0;
+//	
+//	if(black_perc >= 80)	//长黑线屏蔽
+//		emergency_flag = 2;
+//	
+//	for(int i=center-2; i<=center+2; i++)	//丢线检测
+//	{
+//		if(ccd_data[i] > threshold)
+//		{
+//			emergency_flag = 1;	//丢线的优先级高于长黑线
+//			break;
+//		}
+//	}
 	
-	if(black_perc >= 80)	//长黑线屏蔽
-		emergency_flag = 2;
-	
-	for(int i=center-2; i<=center+2; i++)	//丢线检测
-	{
-		if(ccd_data[i] > threshold)
-		{
-			emergency_flag = 1;	//丢线的优先级高于长黑线
-			break;
-		}
-	}
-	
-	if(emergency_flag == 0)
-	{
-		gray_left_last = ccd_data[center];
-		gray_right_last = ccd_data[center];
-		
-		for(int i = center; i >= 1; i--)
-		{
-			gray_left = gray_avr(ccd_data[i-1], ccd_data[i], ccd_data[i+1]);
-			if(gray_left - gray_left_last > threshold_Delta)
-			{
-				edge_left = i;
-				break;
-			}
-		}
-		
-		for(int i = center; i <= 126; i++)
-		{
-			gray_right = gray_avr(ccd_data[i-1], ccd_data[i], ccd_data[i+1]);
-			if(gray_right - gray_right_last > threshold_Delta)
-			{
-				edge_right = i;
-				break;
-			}
-		}
-		return (edge_left + edge_right) / 2;
-	}
+//	if(emergency_flag == 0)
+//	{
+//		gray_left_last = ccd_data[center];
+//		gray_right_last = ccd_data[center];
+//		
+//		for(int i = center; i >= 1; i--)
+//		{
+//			gray_left = gray_avr(ccd_data[i-1], ccd_data[i], ccd_data[i+1]);
+//			if(gray_left - gray_left_last > threshold_Delta)
+//			{
+//				edge_left = i;
+//				break;
+//			}
+//		}
+//		
+//		for(int i = center; i <= 126; i++)
+//		{
+//			gray_right = gray_avr(ccd_data[i-1], ccd_data[i], ccd_data[i+1]);
+//			if(gray_right - gray_right_last > threshold_Delta)
+//			{
+//				edge_right = i;
+//				break;
+//			}
+//		}
+//		return (edge_left + edge_right) / 2;
+//	}
 	
 	if(emergency_flag == 1)
 	{
 		gray_left_last = gray_avr(ccd_data[0], ccd_data[1], ccd_data[2]);
-		for(int i = 1; i <= 126; i++)
+		for(int i = 20; i <= 106; i++)
 		{
 			if(edge_right_flag == 1)
 			{
@@ -322,8 +323,8 @@ int LXS_find_Line(int center, u16* ccd_data)
 		return center;
 	}
 	
-	if(emergency_flag == 2)
-		return 64;
+//	if(emergency_flag == 2)
+//		return 64;
 	
 	return 64;
 }
