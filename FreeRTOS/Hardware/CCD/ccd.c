@@ -278,6 +278,7 @@ int LXS_find_Line(int center, u16* ccd_data)
 	
 	if(emergency_flag == 1)
 	{
+		ccd_data[1] = ccd_data[126] = 3000;
 		gray_left_last = gray_avr(ccd_data[0], ccd_data[1], ccd_data[2]);
 		for(int i = 1; i <= 126; i++)
 		{
