@@ -10,7 +10,7 @@
   
 int is_car2 = 0;
 int Target_pharmacy = 0;
-int pharmacy_position[10] = {1,2,-1,-1,-1,-1,-1,-1,-1,-1};
+int pharmacy_position[10] = {1,2,3,4,5,6,7,8,-1,-1};
 
 //////////////////////////////////////////////////////////////////
 //加入以下代码,支持printf函数,而不需要选择use MicroLIB	  
