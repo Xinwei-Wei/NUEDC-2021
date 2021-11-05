@@ -4,6 +4,7 @@
 #include "adc.h"
 #include "pid.h"
 #include "includes.h"
+#include "filter_mathod.h"
 
 #define	delay_ms(x) vTaskDelay(x)
 
@@ -332,7 +333,10 @@ int LXS_find_Line(int center, u16* ccd_data)
 			is_find_line = -1;
 		}
 		if(emergency_num_last >= 5)
-			return (emergency_left + emergency_right) / 2;
+			center = (emergency_left + emergency_right) / 2;
+		
+//		KalmanFilter(center, 0.8, 0.2);
+		
 		return center;
 	}
 	
@@ -341,6 +345,8 @@ int LXS_find_Line(int center, u16* ccd_data)
 	
 	return 64;
 }
+
+
 	
 //	if(emergency_flag == 0)
 //	{
