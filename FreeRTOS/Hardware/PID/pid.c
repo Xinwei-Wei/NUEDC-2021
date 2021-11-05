@@ -33,7 +33,7 @@ float position_pid(struct PositionPID* p)
 float incremental_pid(struct IncrementalPID* p)
 {
 	float pwm;
-	pwm = p->kp*(p->error-p->last_error)+p->ki*p->error+p->kd*(p->error-2*p->last_error+p->last_last_error);
+	pwm = p->kp*(p->error-p->last_error)+p->ki*p->error+p->kd*(p->error - 2*p->last_error + p->last_last_error);
 	p->last_last_error = p->last_error;
 	p->last_error = p->error;
 	return pwm;

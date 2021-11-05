@@ -145,89 +145,89 @@ void Initial_USART2(u32 baudrate)
 *4*9bytes???(????1--9???,?????4?)
 *1byte???
 *******************************************************************/
-void USART2_IRQHandler(void)
-{
-    u32 i = 0, b = 0, d;
-    u32 dat_temp;
-//    Buzzer_GetOffSetTmOver();//?????????
-	
-    if(USART_GetITStatus(USART2, USART_IT_RXNE) != RESET) //??????
-    {
-		PAout(6) = !PAout(6);
-        SerialPortRx.Data = USART_ReceiveData(USART2);
-        if( SerialPortRx.Stack < UartRxBufferLen )  //Stack?(0~Len-1)
-            SerialPortRx.Buffer[SerialPortRx.Stack++] = SerialPortRx.Data;//stack??????????????
-        //UartRxDataLen 41?????   41=4(???4bytes)+9*4(9???double?)+1(byte???)
-        if( SerialPortRx.Stack >= UartRxDataLen
-                && SerialPortRx.Buffer[SerialPortRx.Stack - UartRxDataLen]  == 0xff //????
-                && SerialPortRx.Buffer[SerialPortRx.Stack - UartRxDataLen + 1] == 0x55
-                && SerialPortRx.Buffer[SerialPortRx.Stack - UartRxDataLen + 2] == 0xaa
-                && SerialPortRx.Buffer[SerialPortRx.Stack - UartRxDataLen + 3] == 0x10 )
-        {   //double data 9???????   (?????????32?)
-            SerialPortRx.Check = 0;
-            b = SerialPortRx.Stack - UartRxDataLen; //???,????????
+//void USART2_IRQHandler(void)
+//{
+//    u32 i = 0, b = 0, d;
+//    u32 dat_temp;
+////    Buzzer_GetOffSetTmOver();//?????????
+//	
+//    if(USART_GetITStatus(USART2, USART_IT_RXNE) != RESET) //??????
+//    {
+//		PAout(6) = !PAout(6);
+//        SerialPortRx.Data = USART_ReceiveData(USART2);
+//        if( SerialPortRx.Stack < UartRxBufferLen )  //Stack?(0~Len-1)
+//            SerialPortRx.Buffer[SerialPortRx.Stack++] = SerialPortRx.Data;//stack??????????????
+//        //UartRxDataLen 41?????   41=4(???4bytes)+9*4(9???double?)+1(byte???)
+//        if( SerialPortRx.Stack >= UartRxDataLen
+//                && SerialPortRx.Buffer[SerialPortRx.Stack - UartRxDataLen]  == 0xff //????
+//                && SerialPortRx.Buffer[SerialPortRx.Stack - UartRxDataLen + 1] == 0x55
+//                && SerialPortRx.Buffer[SerialPortRx.Stack - UartRxDataLen + 2] == 0xaa
+//                && SerialPortRx.Buffer[SerialPortRx.Stack - UartRxDataLen + 3] == 0x10 )
+//        {   //double data 9???????   (?????????32?)
+//            SerialPortRx.Check = 0;
+//            b = SerialPortRx.Stack - UartRxDataLen; //???,????????
 
-            for(i = b; i < SerialPortRx.Stack - 1; i++) //????????????
-            {
-                SerialPortRx.Check += SerialPortRx.Buffer[i];//??
-            }
+//            for(i = b; i < SerialPortRx.Stack - 1; i++) //????????????
+//            {
+//                SerialPortRx.Check += SerialPortRx.Buffer[i];//??
+//            }
 
-            //????????????????????
-            if( SerialPortRx.Check == SerialPortRx.Buffer[SerialPortRx.Stack - 1] )
-            {
-                for(i = 0; i < 9; i++)
-                {
-                    //32? ?16??????,?16??????
-                    dat_temp = SerialPortRx.Buffer[b + i * 4 + 4] * 0x1000000L
-                               + SerialPortRx.Buffer[b + i * 4 + 5] * 0x10000L
-                               + SerialPortRx.Buffer[b + i * 4 + 6] * 0x100L
-                               + SerialPortRx.Buffer[b + i * 4 + 7];
+//            //????????????????????
+//            if( SerialPortRx.Check == SerialPortRx.Buffer[SerialPortRx.Stack - 1] )
+//            {
+//                for(i = 0; i < 9; i++)
+//                {
+//                    //32? ?16??????,?16??????
+//                    dat_temp = SerialPortRx.Buffer[b + i * 4 + 4] * 0x1000000L
+//                               + SerialPortRx.Buffer[b + i * 4 + 5] * 0x10000L
+//                               + SerialPortRx.Buffer[b + i * 4 + 6] * 0x100L
+//                               + SerialPortRx.Buffer[b + i * 4 + 7];
 
-                    if(dat_temp > 0x7FFFFFFF)  d = 0x7FFFFFFF- dat_temp  ; //??
-                    else       d = dat_temp  ;
+//                    if(dat_temp > 0x7FFFFFFF)  d = 0x7FFFFFFF- dat_temp  ; //??
+//                    else       d = dat_temp  ;
 
-                    UartData[i] = d;
-                    UartData[i] /= 65536.0;
-										
+//                    UartData[i] = d;
+//                    UartData[i] /= 65536.0;
+//										
 
-                }
-								Page0_debug();
-								Page1_debug();
-								Page2_debug();
-								Page3_debug();
-								Page4_debug();
-								Page5_debug();
-								Page6_debug();
-								Page7_debug();
-            }
-            SerialPortRx.Stack = 0;
-        }
-        //????????,?????
-        else if(   SerialPortRx.Stack >= UartRxCmdLen //UartRxCmdLen = 7?????
-                   && SerialPortRx.Buffer[SerialPortRx.Stack - UartRxCmdLen]  == 0xff
-                   && SerialPortRx.Buffer[SerialPortRx.Stack - UartRxCmdLen + 1] == 0x55
-                   && SerialPortRx.Buffer[SerialPortRx.Stack - UartRxCmdLen + 2] == 0xaa
-                   && SerialPortRx.Buffer[SerialPortRx.Stack - UartRxCmdLen + 3] == 0x77 ) //cmd
-        {
-            SerialPortRx.Check = 0;
-            b = SerialPortRx.Stack - UartRxCmdLen; //???
-            for(i = b; i < SerialPortRx.Stack - 1; i++) //???????????
-            {
-                SerialPortRx.Check += SerialPortRx.Buffer[i];//??
-            }
-            if( SerialPortRx.Check == SerialPortRx.Buffer[SerialPortRx.Stack - 1] )
-            {   //????
-                //UartCmd(UartCmdNum,UartCmdData);//????????,??MCU????
-            }
-            SerialPortRx.Stack = 0;
-        }
-    }
+//                }
+//								Page0_debug();
+//								Page1_debug();
+//								Page2_debug();
+//								Page3_debug();
+//								Page4_debug();
+//								Page5_debug();
+//								Page6_debug();
+//								Page7_debug();
+//            }
+//            SerialPortRx.Stack = 0;
+//        }
+//        //????????,?????
+//        else if(   SerialPortRx.Stack >= UartRxCmdLen //UartRxCmdLen = 7?????
+//                   && SerialPortRx.Buffer[SerialPortRx.Stack - UartRxCmdLen]  == 0xff
+//                   && SerialPortRx.Buffer[SerialPortRx.Stack - UartRxCmdLen + 1] == 0x55
+//                   && SerialPortRx.Buffer[SerialPortRx.Stack - UartRxCmdLen + 2] == 0xaa
+//                   && SerialPortRx.Buffer[SerialPortRx.Stack - UartRxCmdLen + 3] == 0x77 ) //cmd
+//        {
+//            SerialPortRx.Check = 0;
+//            b = SerialPortRx.Stack - UartRxCmdLen; //???
+//            for(i = b; i < SerialPortRx.Stack - 1; i++) //???????????
+//            {
+//                SerialPortRx.Check += SerialPortRx.Buffer[i];//??
+//            }
+//            if( SerialPortRx.Check == SerialPortRx.Buffer[SerialPortRx.Stack - 1] )
+//            {   //????
+//                //UartCmd(UartCmdNum,UartCmdData);//????????,??MCU????
+//            }
+//            SerialPortRx.Stack = 0;
+//        }
+//    }
 
-    else        //?????????????????
-    {
-        SerialPortRx.Stack = 0;
-    }
-}
+//    else        //?????????????????
+//    {
+//        SerialPortRx.Stack = 0;
+//    }
+//}
 
 #endif
 

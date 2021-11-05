@@ -7,9 +7,9 @@
 */
 
 #define		vTask_USART_PRIO			1
-#define		vTask_Wheel_PRIO			4
+#define		vTask_Wheel_PRIO			6
 #define		vTask_CCD_PRIO		 		5
-#define		vTask_Servo_PRIO		 	2
+#define		vTask_Control_PRIO		 	2
 
 /*
 **********************************************************************************************************
@@ -20,7 +20,7 @@
 static	void	AppTaskCreate		(void);
 static	void	vTask_USART			(void *pvParameters);
 static	void	vTask_Wheel			(void *pvParameters);
-static	void	vTask_Servo			(void *pvParameters);
+static	void	vTask_Control		(void *pvParameters);
 static	void	vTask_CCD			(void *pvParameters);
 
 /*
@@ -31,7 +31,7 @@ static	void	vTask_CCD			(void *pvParameters);
 
 static	TaskHandle_t	xHandleTask_USART			= NULL;
 static	TaskHandle_t	xHandleTask_Wheel			= NULL;
-static	TaskHandle_t	xHandleTask_Servo			= NULL;
+static	TaskHandle_t	xHandleTask_Control			= NULL;
 static	TaskHandle_t	xHandleTask_CCD 			= NULL;
 
 /*
@@ -55,6 +55,9 @@ extern u16 ccd1_data[128];
 int ccd1_center;
 int CCD1_p = 5;
 int targetSpeedW, targetSpeedY;
+extern int is_car2;
+extern int Target_pharmacy;
+extern int is_find_line;
 
 
 /*
@@ -137,15 +140,31 @@ static void vTask_USART(void *pvParameters)
 	}
 }
 
-static void vTask_Servo(void *pvParameters)
+static void vTask_Control(void *pvParameters)
 {
 	TickType_t xLastWakeTime;
-	
+	int i;
 	vTaskDelay(1000);
 	
 	for(;;)
 	{
-		vTaskDelay(1000);
+//		for(i=0;i<3;i++){
+//			USART_SendData(USART1, 0xff);
+//			vTaskDelay(500);
+//		}
+//		if(is_car2){
+//			
+//		}
+//		else{
+//			while(Target_pharmacy){
+//				vTaskDelay(20);
+//			}
+//			targetSpeedY = 100;
+//			while(!is_find_line){
+//				vTaskDelay(20);
+//			}
+//		}
+		vTaskDelay(20);
 	}
 }
 
@@ -160,7 +179,7 @@ static void vTask_CCD(void *pvParameters)
 		CCD_Collect();
 		ccd1_center = CCD_find_Line(ccd1_center, THRESHOLD);
 		//ccd_send_data(USART1, ccd1_data);
-		printf("%d\r\n",ccd1_center);
+		//printf("%d\r\n",ccd1_center);
 		if(ccd1_center > 66 || ccd1_center < 62)
 			targetSpeedW = (ccd1_center - 64) * CCD1_p;
 		else targetSpeedW = 0;
@@ -171,36 +190,35 @@ static void vTask_CCD(void *pvParameters)
 static void vTask_Wheel(void *pvParameters)
 {
 	TickType_t xLastWakeTime;
-	static int time = 20;
+	static int time = 5;
+	static int encoder_speed_l, encoder_speed_r;
 	
 	vTaskDelay(1000);
-	incremental_pid_init(&right_pid, 0.06, 0.1, 0.06);
-	incremental_pid_init(&left_pid,  0.06, 0.1, 0.06);
-	
+	incremental_pid_init(&right_pid, 0.03, 0.01, 0.006);
+	incremental_pid_init(&left_pid,  0.03, 0.01, 0.006);
 	for(;;)
 	{
-		targetSpeedY = 50;
+		targetSpeedY = 500;
 		target_v = moto_caculate(targetSpeedY, targetSpeedW);
-		if(left_pwm < 0)
-			left_pid.error = (target_v[0])+((TIM2->CNT<0xffffffff-TIM2->CNT) ? TIM2->CNT : 0xffffffff-TIM2->CNT)*4.08/time;
-		else
-			left_pid.error = (target_v[0])-((TIM2->CNT<0xffffffff-TIM2->CNT) ? TIM2->CNT : 0xffffffff-TIM2->CNT)*4.08/time;	
+		
+		encoder_speed_l = TIM2->CNT ;
 		TIM2->CNT = 0;
-		if(right_pwm < 0)
-			right_pid.error = (target_v[1])+((TIM4->CNT<0xffff-TIM4->CNT) ? TIM4->CNT : 0xffff-TIM4->CNT)*4.08/time;
-		else
-			right_pid.error = (target_v[1])-((TIM4->CNT<0xffff-TIM4->CNT) ? TIM4->CNT : 0xffff-TIM4->CNT)*4.08/time;	
+		
+		if(TIM4->CNT < 0x8000){
+			encoder_speed_r = TIM4->CNT;
+		}
+		else{
+			encoder_speed_r = TIM4->CNT - 0xffff;
+		}
+		printf("TIM4:%d\r\n",TIM4->CNT);
 		TIM4->CNT = 0;
 		
+		left_pid.error = target_v[0] - encoder_speed_l;
+		right_pid.error = target_v[1] - encoder_speed_r;
+		
 		left_pwm  += incremental_pid(&left_pid);
-		if((left_pwm > 0 && target_v[0] < 0) || (left_pwm < 0 && target_v[0] > 0)){
-			left_pwm = 0;
-		}
 		right_pwm += incremental_pid(&right_pid);
-		if((right_pwm > 0 && target_v[1] < 0) || (right_pwm < 0 && target_v[1] > 0)){
-			right_pwm = 0;
-		}
-		//left_pwm=0;
+		
 		Control_Dir(2, LIMIT(-99, left_pwm,  99));
 		Control_Dir(3, LIMIT(-99, right_pwm, 99));
 	
@@ -247,12 +265,12 @@ static void AppTaskCreate (void)
                  vTask_Wheel_PRIO,			/* 任务优先级*/
                  &xHandleTask_Wheel );		/* 任务句柄  */
 	
-	xTaskCreate( vTask_Servo,				/* 任务函数  */
-                 "vTask Servo",				/* 任务名    */
+	xTaskCreate( vTask_Control,				/* 任务函数  */
+                 "vTask Control",			/* 任务名    */
                  512,						/* 任务栈大小，单位word，4字节 */
                  NULL,						/* 任务参数  */
-                 vTask_Servo_PRIO,			/* 任务优先级*/
-                 &xHandleTask_Servo );		/* 任务句柄  */
+                 vTask_Control_PRIO,		/* 任务优先级*/
+                 &xHandleTask_Control );	/* 任务句柄  */
 	
 	xTaskCreate( vTask_CCD,					/* 任务函数  */
                  "vTask CCD",				/* 任务名    */

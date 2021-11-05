@@ -13,7 +13,7 @@ struct PositionPID{
 
 struct IncrementalPID{
 	float kp, ki, kd;
-	float error, last_error, last_last_error;
+	double error, last_error, last_last_error;
 };
 
 

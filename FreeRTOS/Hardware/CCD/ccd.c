@@ -15,7 +15,7 @@
 #define threshold1  2500
 #define line3_wide  30
 #define line5_wide  70
-#define threshold_black 1500
+//#define threshold_black 1500
 
 u8 ccd_finish_flag;
 u16 ccd1_data[128];
@@ -23,6 +23,9 @@ u16 ccd2_data[128];
 u8 stop_line = line5_wide;
 int EN_stop = 0, EN_EN_stop = 0;
 int longest = 1000;
+int is_find_line;
+extern int pharmacy_position[10];
+extern int Target_pharmacy;
 
 
 void CCD_Init(void)
@@ -137,8 +140,11 @@ int CCD_find_Line(int center, int threshold)
 {
 	int i, emergency_flag = 0, edge_count = 0, edge_left = 0, edge_right = 127;
 	int emergency_count = 0, emergency_max = 0, emergency_right = 0;
+	int threshold_black;
 	
 	threshold = OTSU(ccd1_data);
+	//printf("%d\r\n", threshold);
+	threshold_black = threshold*4/5;
 	
 	for(i=center-2; i<=center+2; i++)
 	{
@@ -173,12 +179,11 @@ int CCD_find_Line(int center, int threshold)
 		edge_right = i-3;
 		edge_count = 0;
 		
-		if(edge_left < 5)
-		{
-			return 66;
-		}
 		
 		center = (edge_left + edge_right) / 2 + 0.5;
+		if(edge_right - edge_left > 50){
+			is_find_line = 1;
+		}
 		center = LIMIT(3, center, 124);
 		return center;
 	}

@@ -8,7 +8,9 @@
 #include "includes.h"					//ucos 使用	  
 #endif
   
- extern double left_target_v;
+int is_car2;
+int Target_pharmacy;
+int pharmacy_position[10] = {1,2,-1,-1,-1,-1,-1,-1,-1,-1};
 
 //////////////////////////////////////////////////////////////////
 //加入以下代码,支持printf函数,而不需要选择use MicroLIB	  
@@ -123,13 +125,26 @@ void uart_putchar(USART_TypeDef* USARTx,unsigned char date)
 
 void USART1_IRQHandler(void)                	//串口1中断服务程序
 {
-	u8 Res;
+	int Res;
 	if(USART_GetITStatus(USART1, USART_IT_RXNE) != RESET)  //接收中断(接收到的数据必须是0x0d 0x0a结尾)
 	{
-		Res = USART_ReceiveData(USART1)-48;//(USART1->DR);	//读取接收到的数据	 
+		Res = USART_ReceiveData(USART1);//(USART1->DR);	//读取接收到的数据
+		if(Res == 0xee){
+			is_car2 = 1;
+		}
 	} 
 }
-
+void USART2_IRQHandler(void)                	//串口1中断服务程序
+{
+	int Res;
+	if(USART_GetITStatus(USART1, USART_IT_RXNE) != RESET)  //接收中断(接收到的数据必须是0x0d 0x0a结尾)
+	{
+		Res = USART_ReceiveData(USART1);//(USART1->DR);	//读取接收到的数据
+		if(Res == 0xee){
+			is_car2 = 1;
+		}
+	} 
+}
 #endif	
 
 int Read_Bit(void)
