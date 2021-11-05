@@ -223,7 +223,7 @@ int gray_avr(int gray0, int gray1, int gray2)
 int LXS_find_Line(int center, u16* ccd_data)
 {
 	int emergency_flag = 1, edge_count = 0, edge_left = 0, edge_right = 127, gray_left = 0, gray_right = 0, gray_left_last = 0, gray_right_last = 0;
-	int black_num = 0, emergency_num = 0, emergency_num_last = 0, emergency_left = 0, emergency_right = 127;
+	int black_num = 0, emergency_num = 0, emergency_num_last = 0, emergency_left = 0, emergency_right = 127, emergency_left_last = 0;
 	float black_perc = 0;
 	int edge_left_flag = 0, edge_right_flag = 1;	//左右边界重捕获指示
 	
@@ -279,7 +279,7 @@ int LXS_find_Line(int center, u16* ccd_data)
 	if(emergency_flag == 1)
 	{
 		gray_left_last = gray_avr(ccd_data[0], ccd_data[1], ccd_data[2]);
-		for(int i = 20; i <= 106; i++)
+		for(int i = 1; i <= 126; i++)
 		{
 			if(edge_right_flag == 1)
 			{
@@ -289,6 +289,7 @@ int LXS_find_Line(int center, u16* ccd_data)
 					edge_left_flag = 1;
 					edge_right_flag = 0;
 					gray_right_last = gray_left;
+					emergency_left_last = i;
 				}
 				else
 					gray_left_last = gray_left;
@@ -301,8 +302,8 @@ int LXS_find_Line(int center, u16* ccd_data)
 				{
 					if(emergency_num > emergency_num_last)
 					{
-						emergency_left = gray_left;
-						emergency_right = gray_right_last;
+						emergency_left = emergency_left_last;
+						emergency_right = i;
 						emergency_num_last = emergency_num;
 					}
 					emergency_num = 0;
@@ -317,6 +318,17 @@ int LXS_find_Line(int center, u16* ccd_data)
 					emergency_num++;
 				}
 			}
+		}
+		if(emergency_num_last>=50){
+			if(is_find_line == -1){
+				is_find_line = 0;
+			}
+			else if(is_find_line == 0){
+				is_find_line = 1;
+			}
+		}
+		else{
+			is_find_line = -1;
 		}
 		if(emergency_num_last >= 5)
 			return (emergency_left + emergency_right) / 2;

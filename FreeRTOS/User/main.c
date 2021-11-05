@@ -292,7 +292,7 @@ static void vTask_CCD(void *pvParameters)
 		CCD_Collect();
 		ccd1_center = LXS_find_Line(ccd1_center, ccd1_data);
 //		ccd_send_data(USART1, ccd1_data);
-//		printf("%d\r\n",ccd1_center);
+		printf("%d\r\n",ccd1_center);
 		if(ccd1_center > 66 || ccd1_center < 62)
 			targetSpeedW = (ccd1_center - 64) * CCD1_p;
 		else targetSpeedW = 0;
