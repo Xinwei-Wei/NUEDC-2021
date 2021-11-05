@@ -15,7 +15,8 @@
 #define threshold1  2500
 #define line3_wide  30
 #define line5_wide  70
-//#define threshold_black 1500
+#define threshold_Delta  500
+
 
 u8 ccd_finish_flag;
 u16 ccd1_data[128];
@@ -136,19 +137,100 @@ int find_line(void)
 }
 
 
-int CCD_find_Line(int center, int threshold)
+//int CCD_find_Line(int center, int threshold)
+//{
+//	int i, emergency_flag = 0, edge_count = 0, edge_left = 0, edge_right = 127;
+//	int emergency_count = 0, emergency_max = 0, emergency_right = 0;
+//	
+//	threshold = OTSU(ccd1_data);
+//	
+//	for(i=center-2; i<=center+2; i++)
+//	{
+//		if(ccd1_data[i] > threshold || ccd1_data[i]< threshold_black)
+//		{
+//			emergency_flag = 1;
+//			break;
+//		}
+//	}
+//	
+//	if(emergency_flag == 0)
+//	{
+//		for(i=center-3; i>=0; i--)
+//		{
+//			if(ccd1_data[i] > threshold || ccd1_data[i]< threshold_black)
+//				edge_count++;
+//			if(edge_count == 3)
+//				break;
+//		}
+//		edge_left = i+3;
+//		edge_count = 0;
+//		
+//		for(i=center+3; i<=127; i++)
+//		{
+//			if(ccd1_data[i] > threshold || ccd1_data[i]< threshold_black)
+//				edge_count++;
+//			if(edge_count == 3)
+//				break;
+//		}
+//		
+//			
+//		edge_right = i-3;
+//		edge_count = 0;
+//		
+//		if(edge_left < 5)
+//		{
+//			return 66;
+//		}
+//		
+//		center = (edge_left + edge_right) / 2 + 0.5;
+//		center = LIMIT(3, center, 124);
+//		return center;
+//	}
+//	else
+//	{
+//		emergency_max = 0;
+//		emergency_flag = 0;
+//		emergency_count = 0;
+//		for(i=0; i<=127; i++)
+//		{
+//			if(ccd1_data[i] <= threshold && ccd1_data[i] > threshold_black)
+//			{
+//				emergency_count++;
+//			}
+//			else
+//			{				
+//				if(emergency_count > emergency_max)
+//				{
+//					emergency_max = emergency_count;
+//					emergency_right = i-1;
+//				}
+//				emergency_count = 0;
+//			}
+//		}
+//		if(emergency_max >= 3)
+//			center = emergency_right - emergency_max/2 - 0.5;
+//		center = LIMIT(3, center, 124);
+//		return center;
+//	}
+//}
+
+int gray_avr(int gray0, int gray1, int gray2)
 {
-	int i, emergency_flag = 0, edge_count = 0, edge_left = 0, edge_right = 127;
+	return (0.8*gray0 + gray1 + 0.8*gray2)/3;
+}
+
+int LXS_find_Line(int center, u16* ccd_data)
+{
+	int emergency_flag = 0, edge_count = 0, edge_left = 0, edge_right = 127, gray_left = 0, gray_right = 0, gray_left_last = 0, gray_right_last = 0;
 	int emergency_count = 0, emergency_max = 0, emergency_right = 0;
 	int threshold_black;
 	
-	threshold = OTSU(ccd1_data);
-	//printf("%d\r\n", threshold);
-	threshold_black = threshold*4/5;
+//	int threshold = OTSU(ccd_data);
+	int threshold = 4000;
 	
-	for(i=center-2; i<=center+2; i++)
+	for(int i=center-2; i<=center+2; i++)
 	{
-		if(ccd1_data[i] > threshold || ccd1_data[i]< threshold_black)
+		if(ccd_data[i] > threshold)
 		{
 			emergency_flag = 1;
 			break;
@@ -157,63 +239,95 @@ int CCD_find_Line(int center, int threshold)
 	
 	if(emergency_flag == 0)
 	{
-		for(i=center-3; i>=0; i--)
-		{
-			if(ccd1_data[i] > threshold || ccd1_data[i]< threshold_black)
-				edge_count++;
-			if(edge_count == 3)
-				break;
-		}
-		edge_left = i+3;
-		edge_count = 0;
+		gray_left_last = gray_avr(ccd_data[center-2], ccd_data[center-1], ccd_data[center]);
+		gray_right_last = gray_avr(ccd_data[center], ccd_data[center+1], ccd_data[center+2]);
 		
-		for(i=center+3; i<=127; i++)
+		for(int i = 1; i < 128; i++)
 		{
-			if(ccd1_data[i] > threshold || ccd1_data[i]< threshold_black)
-				edge_count++;
-			if(edge_count == 3)
-				break;
-		}
-		
+			gray_left = gray_avr(ccd_data[center-i-1], ccd_data[center-i], ccd_data[center-i+1]);
+			gray_right = gray_avr(ccd_data[center+i-1], ccd_data[center+i], ccd_data[center+i+1]);
 			
-		edge_right = i-3;
-		edge_count = 0;
-		
-		
-		center = (edge_left + edge_right) / 2 + 0.5;
-		if(edge_right - edge_left > 50){
-			is_find_line = 1;
-		}
-		center = LIMIT(3, center, 124);
-		return center;
-	}
-	else
-	{
-		emergency_max = 0;
-		emergency_flag = 0;
-		emergency_count = 0;
-		for(i=0; i<=127; i++)
-		{
-			if(ccd1_data[i] <= threshold && ccd1_data[i] > threshold_black)
-			{
-				emergency_count++;
-			}
+			if(gray_left - gray_left_last > threshold_Delta)
+				edge_left = center-i;
+
 			else
-			{				
-				if(emergency_count > emergency_max)
-				{
-					emergency_max = emergency_count;
-					emergency_right = i-1;
-				}
-				emergency_count = 0;
-			}
+				gray_left_last = gray_left;
+			
+			if(gray_right - gray_right_last > threshold_Delta)
+				edge_right = center+i;
+			else
+				gray_right_last = gray_right;
+			
+			if(edge_left != 0 && edge_right != 127)
+				break;
 		}
-		if(emergency_max >= 3)
-			center = emergency_right - emergency_max/2 - 0.5;
-		center = LIMIT(3, center, 124);
-		return center;
 	}
+	
+	return (edge_left + edge_right) / 2;
 }
+			
+			
+
+//	if(emergency_flag == 0)
+//	{
+//		for(i=center-3; i>=0; i--)
+//		{
+//			if(ccd1_data[i] > threshold || ccd1_data[i]< threshold_black)
+//				edge_count++;
+//			if(edge_count == 3)
+//				break;
+//		}
+//		edge_left = i+3;
+//		edge_count = 0;
+//		
+//		for(i=center+3; i<=127; i++)
+//		{
+//			if(ccd1_data[i] > threshold || ccd1_data[i]< threshold_black)
+//				edge_count++;
+//			if(edge_count == 3)
+//				break;
+//		}
+//		
+//			
+//		edge_right = i-3;
+//		edge_count = 0;
+//		
+//		if(edge_left < 5)
+//		{
+//			return 66;
+//		}
+//		
+//		center = (edge_left + edge_right) / 2 + 0.5;
+//		center = LIMIT(3, center, 124);
+//		return center;
+//	}
+//	else
+//	{
+//		emergency_max = 0;
+//		emergency_flag = 0;
+//		emergency_count = 0;
+//		for(i=0; i<=127; i++)
+//		{
+//			if(ccd1_data[i] <= threshold && ccd1_data[i] > threshold_black)
+//			{
+//				emergency_count++;
+//			}
+//			else
+//			{				
+//				if(emergency_count > emergency_max)
+//				{
+//					emergency_max = emergency_count;
+//					emergency_right = i-1;
+//				}
+//				emergency_count = 0;
+//			}
+//		}
+//		if(emergency_max >= 3)
+//			center = emergency_right - emergency_max/2 - 0.5;
+//		center = LIMIT(3, center, 124);
+//		return center;
+//	}
+//}
 
 int OTSU(u16* array)
 {
@@ -367,7 +481,3 @@ int Find_Line_first(u16 *data, int threshold)
 	}
 	return 1;
 }
-
-
-
-

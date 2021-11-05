@@ -177,7 +177,7 @@ static void vTask_CCD(void *pvParameters)
 	for(;;)
 	{
 		CCD_Collect();
-		ccd1_center = CCD_find_Line(ccd1_center, THRESHOLD);
+		ccd1_center = LXS_find_Line(ccd1_center, ccd1_data);
 		//ccd_send_data(USART1, ccd1_data);
 		//printf("%d\r\n",ccd1_center);
 		if(ccd1_center > 66 || ccd1_center < 62)
