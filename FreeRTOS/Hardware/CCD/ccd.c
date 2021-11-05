@@ -216,7 +216,8 @@ int find_line(void)
 
 int gray_avr(int gray0, int gray1, int gray2)
 {
-	return (0.8*gray0 + gray1 + 0.8*gray2)/3;
+//	return (0.2*gray0 + gray1 + 0.2*gray2)/1.4;
+	return gray1;
 }
 
 int LXS_find_Line(int center, u16* ccd_data)
@@ -224,9 +225,10 @@ int LXS_find_Line(int center, u16* ccd_data)
 	int emergency_flag = 0, edge_count = 0, edge_left = 0, edge_right = 127, gray_left = 0, gray_right = 0, gray_left_last = 0, gray_right_last = 0;
 	int emergency_count = 0, emergency_max = 0, emergency_right = 0;
 	int threshold_black;
+	int start_left = 0, start_right = 0;
 	
 //	int threshold = OTSU(ccd_data);
-	int threshold = 4000;
+	int threshold = 5000;
 	
 	for(int i=center-2; i<=center+2; i++)
 	{
@@ -239,30 +241,74 @@ int LXS_find_Line(int center, u16* ccd_data)
 	
 	if(emergency_flag == 0)
 	{
-		gray_left_last = gray_avr(ccd_data[center-2], ccd_data[center-1], ccd_data[center]);
-		gray_right_last = gray_avr(ccd_data[center], ccd_data[center+1], ccd_data[center+2]);
+		gray_left_last = ccd_data[127];
+		gray_right_last = ccd_data[1];
 		
 		for(int i = 1; i < 128; i++)
 		{
-			gray_left = gray_avr(ccd_data[center-i-1], ccd_data[center-i], ccd_data[center-i+1]);
-			gray_right = gray_avr(ccd_data[center+i-1], ccd_data[center+i], ccd_data[center+i+1]);
+			start_left = 127-i;
+			if(start_left <= 2)
+			{
+				start_left = 2;
+			}
+			start_right = i;
+			if(start_right >= 126)
+			{
+				start_right = 126;
+			}
+			gray_left = ccd_data[start_left];
+			gray_right = ccd_data[start_right];
 			
-			if(gray_left - gray_left_last > threshold_Delta)
-				edge_left = center-i;
+			if(gray_left - gray_left_last > threshold_Delta  && edge_left == 0)
+				edge_left = start_left;
 
 			else
 				gray_left_last = gray_left;
 			
-			if(gray_right - gray_right_last > threshold_Delta)
-				edge_right = center+i;
+			if(gray_right - gray_right_last > threshold_Delta  && edge_right == 127)
+				edge_right = start_right;
 			else
 				gray_right_last = gray_right;
 			
 			if(edge_left != 0 && edge_right != 127)
 				break;
 		}
+		
+		
+//		for(int i = 1; i < 128; i++)
+//		{
+//			start_left = center-i;
+//			if(start_left <= 2)
+//			{
+//				start_left = 2;
+//			}
+//			start_right = center+i;
+//			if(start_right >= 125)
+//			{
+//				start_right = 125;
+//			}
+////			gray_left = gray_avr(ccd_data[center-i-1], ccd_data[center-i], ccd_data[center-i+1]);
+////			gray_right = gray_avr(ccd_data[center+i-1], ccd_data[center+i], ccd_data[center+i+1]);
+//			gray_left = ccd_data[start_left];
+//			gray_right = ccd_data[start_right];
+//			
+//			if(gray_left - gray_left_last > threshold_Delta)
+//				edge_left = center-i;
+
+//			else
+//				gray_left_last = gray_left;
+//			
+//			if(gray_right - gray_right_last > threshold_Delta)
+//				edge_right = center+i;
+//			else
+//				gray_right_last = gray_right;
+//			
+//			if(edge_left != 0 && edge_right != 127)
+//				break;
+//		}
 	}
 	
+//	printf("left:%d    right:%d    middle:%d\r\n",edge_left, edge_right,(edge_left + edge_right) / 2);
 	return (edge_left + edge_right) / 2;
 }
 			

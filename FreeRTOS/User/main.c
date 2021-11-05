@@ -52,8 +52,8 @@ struct IncrementalPID left_pid, right_pid;
 double left_pwm, right_pwm;
 double *target_v;
 extern u16 ccd1_data[128];
-int ccd1_center;
-int CCD1_p = 5;
+int ccd1_center = 64;
+int CCD1_p = 10;
 int targetSpeedW, targetSpeedY;
 extern int is_car2;
 extern int Target_pharmacy;
@@ -172,14 +172,14 @@ static void vTask_CCD(void *pvParameters)
 {
 	TickType_t xLastWakeTime;
 	
-	vTaskDelay(1000);
+	vTaskDelay(3000);
 	
 	for(;;)
 	{
 		CCD_Collect();
 		ccd1_center = LXS_find_Line(ccd1_center, ccd1_data);
-		//ccd_send_data(USART1, ccd1_data);
-		//printf("%d\r\n",ccd1_center);
+//		ccd_send_data(USART1, ccd1_data);
+//		printf("%d\r\n",ccd1_center);
 		if(ccd1_center > 66 || ccd1_center < 62)
 			targetSpeedW = (ccd1_center - 64) * CCD1_p;
 		else targetSpeedW = 0;
@@ -210,7 +210,7 @@ static void vTask_Wheel(void *pvParameters)
 		else{
 			encoder_speed_r = TIM4->CNT - 0xffff;
 		}
-		printf("TIM4:%d\r\n",TIM4->CNT);
+		//printf("TIM4:%d\r\n",TIM4->CNT);
 		TIM4->CNT = 0;
 		
 		left_pid.error = target_v[0] - encoder_speed_l;
