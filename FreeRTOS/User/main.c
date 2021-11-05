@@ -6,10 +6,11 @@
 **********************************************************************************************************
 */
 
-#define		vTask_USART_PRIO			1
+#define		vTask_USART_PRIO			7
 #define		vTask_Wheel_PRIO			6
 #define		vTask_CCD_PRIO		 		5
 #define		vTask_Control_PRIO		 	2
+#define		vTask_Key_PRIO		 		3
 
 /*
 **********************************************************************************************************
@@ -22,6 +23,7 @@ static	void	vTask_USART			(void *pvParameters);
 static	void	vTask_Wheel			(void *pvParameters);
 static	void	vTask_Control		(void *pvParameters);
 static	void	vTask_CCD			(void *pvParameters);
+static	void	vTask_Key			(void *pvParameters);
 
 /*
 **********************************************************************************************************
@@ -33,6 +35,7 @@ static	TaskHandle_t	xHandleTask_USART			= NULL;
 static	TaskHandle_t	xHandleTask_Wheel			= NULL;
 static	TaskHandle_t	xHandleTask_Control			= NULL;
 static	TaskHandle_t	xHandleTask_CCD 			= NULL;
+static	TaskHandle_t	xHandleTask_Key			= NULL;
 
 /*
 **********************************************************************************************************
@@ -42,6 +45,8 @@ static	TaskHandle_t	xHandleTask_CCD 			= NULL;
 
 void	Periph_Init	(void);
 static	void	TestLED(void);
+static	void	turn_left(void);
+static	void	turn_right(void);
 
 /*
 **********************************************************************************************************
@@ -53,11 +58,13 @@ double left_pwm, right_pwm;
 double *target_v;
 extern u16 ccd1_data[128];
 int ccd1_center = 64;
-int CCD1_p = 10;
-int targetSpeedW, targetSpeedY;
+int CCD1_p = 5;
+int targetSpeedW = 0, targetSpeedY = 0;
 extern int is_car2;
 extern int Target_pharmacy;
 extern int is_find_line;
+int is_drugs;
+extern int pharmacy_position[10];
 
 
 /*
@@ -105,9 +112,7 @@ void Periph_Init()
 	
 	taskENTER_CRITICAL();
 	
-//	LED_Init();
 	uart_init(115200);
-	//Initial_USART2(115200);
 	TIM8_PWM_Init(500-1, 33-1);
 	Encoder_Init_TIM2();
 	Encoder_Init_TIM4();
@@ -115,6 +120,7 @@ void Periph_Init()
 	Servo_Init();
 	LED_Init();
 	CCD_Init();
+	KEY_Init();
 	
 	taskEXIT_CRITICAL();
 }
@@ -135,7 +141,8 @@ static void vTask_USART(void *pvParameters)
 	{
 //		TestLED();
 //		vTaskDelayUntil(&xLastWakeTime, 2000);
-		
+//		LED1=!LED1;
+		USART_SendData(USART2,1);
 		vTaskDelay(1000);
 	}
 }
@@ -148,22 +155,128 @@ static void vTask_Control(void *pvParameters)
 	
 	for(;;)
 	{
-//		for(i=0;i<3;i++){
-//			USART_SendData(USART1, 0xff);
-//			vTaskDelay(500);
-//		}
-//		if(is_car2){
-//			
-//		}
-//		else{
-//			while(Target_pharmacy){
+		//询问第二辆车是否启动
+		for(i=0;i<3;i++){
+			USART_SendData(USART2, 0xff);
+			vTaskDelay(500);
+		}
+		//双车联动
+		if(is_car2){
+			
+		}
+		//基础任务
+		else{
+			//等待识别
+			for(i=0;i<5;i++){
+				USART_SendData(USART1, 'a');
+				vTaskDelay(50);
+			}
+			
+			while(!Target_pharmacy){
+				vTaskDelay(20);
+			}
+			//等待放置药品
+//			vTaskResume(xHandleTask_Key);
+//			while(!is_drugs){
 //				vTaskDelay(20);
 //			}
-//			targetSpeedY = 100;
-//			while(!is_find_line){
-//				vTaskDelay(20);
-//			}
-//		}
+			//出发
+			targetSpeedY = 700;
+			//等待CCD识别
+			while(is_find_line != 1){
+				vTaskDelay(20);
+			}
+			//第一个路口
+			//左转
+			if(Target_pharmacy == pharmacy_position[0]){
+				turn_left();						
+			}
+			//右转
+			else if(Target_pharmacy == pharmacy_position[1]){
+				turn_right();							
+			}
+			//直行
+			else{
+				vTaskDelay(1000);
+				is_find_line = -1;
+				//读秒后请求上位机数据
+				/*
+				//多次发送
+				*/
+				//等待CCD识别
+				while(is_find_line != 1){
+					vTaskDelay(20);
+				}
+				//第二个路口
+				//左转
+				if(Target_pharmacy == pharmacy_position[2]){
+					turn_left();						
+				}
+				//右转
+				else if(Target_pharmacy == pharmacy_position[3]){
+					turn_right();							
+				}
+				//直行
+				else{
+					vTaskDelay(1000);
+					is_find_line = -1;
+					//读秒后请求上位机数据
+					/*
+					//多次发送
+					*/
+					//等待CCD识别
+					while(is_find_line != 1){
+						vTaskDelay(20);
+					}
+					//第三个路口
+					//左转
+					if(Target_pharmacy == pharmacy_position[4] || Target_pharmacy == pharmacy_position[5]){
+						turn_left();
+						targetSpeedY = 700;
+						is_find_line = -1;
+						//读秒后请求上位机数据
+						/*
+						//多次发送
+						*/
+						//等待CCD识别	
+						while(is_find_line != 1){
+							vTaskDelay(20);
+						}		
+						if(Target_pharmacy == pharmacy_position[4]){
+							turn_left();						
+						}
+						//右转
+						else if(Target_pharmacy == pharmacy_position[5]){
+							turn_right();							
+						}
+					}
+					//右转
+					else{
+						turn_right();
+						targetSpeedY = 700;
+						is_find_line = -1;
+						//读秒后请求上位机数据
+						/*
+						//多次发送
+						*/
+						//等待CCD识别
+						while(is_find_line != 1){
+							vTaskDelay(20);
+						}
+						if(Target_pharmacy == pharmacy_position[6]){
+							turn_left();						
+						}
+						//右转
+						else if(Target_pharmacy == pharmacy_position[7]){
+							turn_right();							
+						}
+					}
+				}
+			}
+			while(1){
+				vTaskDelay(20);
+			}
+		}
 		vTaskDelay(20);
 	}
 }
@@ -183,7 +296,7 @@ static void vTask_CCD(void *pvParameters)
 		if(ccd1_center > 66 || ccd1_center < 62)
 			targetSpeedW = (ccd1_center - 64) * CCD1_p;
 		else targetSpeedW = 0;
-		vTaskDelay(20);
+		vTaskDelay(10);
 	}
 }
 
@@ -198,7 +311,8 @@ static void vTask_Wheel(void *pvParameters)
 	incremental_pid_init(&left_pid,  0.03, 0.01, 0.006);
 	for(;;)
 	{
-		targetSpeedY = 500;
+		//targetSpeedY = 500;
+		//printf("speed_y:%d speed_w:%d\r\n",targetSpeedY, targetSpeedW);
 		target_v = moto_caculate(targetSpeedY, targetSpeedW);
 		
 		encoder_speed_l = TIM2->CNT ;
@@ -226,6 +340,24 @@ static void vTask_Wheel(void *pvParameters)
 		vTaskDelay(time);
 	}
 }
+
+static void vTask_Key(void *pvParameters)
+{
+	TickType_t xLastWakeTime;
+	
+	vTaskSuspend(xHandleTask_Key);
+	for(;;)
+	{
+		if(!PEin(3)){
+			vTaskDelay(20);
+			if(!PEin(3)){
+				is_drugs = 1;
+				vTaskSuspend(xHandleTask_Key);
+			}
+		}
+		vTaskDelay(20);
+	}
+}
 /*
 **********************************************************************************************************
 											    用户函数
@@ -239,6 +371,24 @@ static void TestLED(void)
 
 	vTaskDelay(500);
 	LED1 = 1;
+}
+
+static void turn_left(void){
+	targetSpeedY = 300;				
+	vTaskSuspend(xHandleTask_CCD);
+	targetSpeedW = -250;
+	vTaskDelay(1000);
+	targetSpeedW = 0;
+	vTaskResume(xHandleTask_CCD);
+}
+
+static void turn_right(void){
+	targetSpeedY = 300;				
+	vTaskSuspend(xHandleTask_CCD);
+	targetSpeedW = -250;
+	vTaskDelay(1000);
+	targetSpeedW = 0;
+	vTaskResume(xHandleTask_CCD);
 }
 
 /*
@@ -278,6 +428,13 @@ static void AppTaskCreate (void)
                  NULL,						/* 任务参数  */
                  vTask_CCD_PRIO,			/* 任务优先级*/
                  &xHandleTask_CCD );		/* 任务句柄  */
+				 
+	xTaskCreate( vTask_Key,					/* 任务函数  */
+                 "vTask Key",				/* 任务名    */
+                 512,						/* 任务栈大小，单位word，4字节 */
+                 NULL,						/* 任务参数  */
+                 vTask_Key_PRIO,			/* 任务优先级*/
+                 &xHandleTask_Key );		/* 任务句柄  */
 	
 }
 /***************************** (END OF FILE) *********************************/

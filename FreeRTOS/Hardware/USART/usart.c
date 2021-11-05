@@ -8,8 +8,8 @@
 #include "includes.h"					//ucos 使用	  
 #endif
   
-int is_car2;
-int Target_pharmacy;
+int is_car2 = 0;
+int Target_pharmacy = 0;
 int pharmacy_position[10] = {1,2,-1,-1,-1,-1,-1,-1,-1,-1};
 
 //////////////////////////////////////////////////////////////////
@@ -128,22 +128,15 @@ void USART1_IRQHandler(void)                	//串口1中断服务程序
 	int Res;
 	if(USART_GetITStatus(USART1, USART_IT_RXNE) != RESET)  //接收中断(接收到的数据必须是0x0d 0x0a结尾)
 	{
-		Res = USART_ReceiveData(USART1);//(USART1->DR);	//读取接收到的数据
-		if(Res == 0xee){
-			is_car2 = 1;
-		}
+		Target_pharmacy = USART_ReceiveData(USART1) - '0';
 	} 
 }
 void USART2_IRQHandler(void)                	//串口1中断服务程序
 {
-	int Res;
-	if(USART_GetITStatus(USART1, USART_IT_RXNE) != RESET)  //接收中断(接收到的数据必须是0x0d 0x0a结尾)
-	{
-		Res = USART_ReceiveData(USART1);//(USART1->DR);	//读取接收到的数据
-		if(Res == 0xee){
-			is_car2 = 1;
-		}
-	} 
+	if(USART_GetITStatus(USART2, USART_IT_RXNE) != RESET) //??????
+    {
+        Target_pharmacy = USART_ReceiveData(USART2) - '0';
+	}
 }
 #endif	
 
