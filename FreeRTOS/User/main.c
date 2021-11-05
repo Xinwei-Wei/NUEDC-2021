@@ -142,7 +142,7 @@ static void vTask_USART(void *pvParameters)
 //		TestLED();
 //		vTaskDelayUntil(&xLastWakeTime, 2000);
 //		LED1=!LED1;
-		USART_SendData(USART2,1);
+//		USART_SendData(USART2,1);
 		vTaskDelay(1000);
 	}
 }
@@ -184,12 +184,12 @@ static void vTask_Control(void *pvParameters)
 			targetSpeedY = 700;
 			//等待CCD识别
 			while(is_find_line != 1){
-				vTaskDelay(20);
+				vTaskDelay(5);
 			}
 			//第一个路口
 			//左转
 			if(Target_pharmacy == pharmacy_position[0]){
-				turn_left();						
+				turn_left();	
 			}
 			//右转
 			else if(Target_pharmacy == pharmacy_position[1]){
@@ -197,7 +197,7 @@ static void vTask_Control(void *pvParameters)
 			}
 			//直行
 			else{
-				vTaskDelay(1000);
+				vTaskDelay(300);
 				is_find_line = -1;
 				//读秒后请求上位机数据
 				/*
@@ -205,7 +205,7 @@ static void vTask_Control(void *pvParameters)
 				*/
 				//等待CCD识别
 				while(is_find_line != 1){
-					vTaskDelay(20);
+					vTaskDelay(5);
 				}
 				//第二个路口
 				//左转
@@ -226,7 +226,7 @@ static void vTask_Control(void *pvParameters)
 					*/
 					//等待CCD识别
 					while(is_find_line != 1){
-						vTaskDelay(20);
+						vTaskDelay(5);
 					}
 					//第三个路口
 					//左转
@@ -240,7 +240,7 @@ static void vTask_Control(void *pvParameters)
 						*/
 						//等待CCD识别	
 						while(is_find_line != 1){
-							vTaskDelay(20);
+							vTaskDelay(5);
 						}		
 						if(Target_pharmacy == pharmacy_position[4]){
 							turn_left();						
@@ -261,7 +261,7 @@ static void vTask_Control(void *pvParameters)
 						*/
 						//等待CCD识别
 						while(is_find_line != 1){
-							vTaskDelay(20);
+							vTaskDelay(5);
 						}
 						if(Target_pharmacy == pharmacy_position[6]){
 							turn_left();						
@@ -377,16 +377,17 @@ static void turn_left(void){
 	targetSpeedY = 300;				
 	vTaskSuspend(xHandleTask_CCD);
 	targetSpeedW = -250;
-	vTaskDelay(1000);
+	vTaskDelay(700);
 	targetSpeedW = 0;
 	vTaskResume(xHandleTask_CCD);
 }
 
 static void turn_right(void){
+	printf("start turn\r\n");
 	targetSpeedY = 300;				
 	vTaskSuspend(xHandleTask_CCD);
-	targetSpeedW = -250;
-	vTaskDelay(1000);
+	targetSpeedW = 250;
+	vTaskDelay(700);
 	targetSpeedW = 0;
 	vTaskResume(xHandleTask_CCD);
 }
