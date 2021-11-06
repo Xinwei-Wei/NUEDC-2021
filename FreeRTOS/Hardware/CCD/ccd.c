@@ -29,6 +29,7 @@ int is_find_line = -1;
 extern int pharmacy_position[10];
 extern int Target_pharmacy;
 int en_find = 1;
+int is_half_line = 0;
 
 
 void CCD_Init(void)
@@ -362,6 +363,9 @@ int LXS_find_Line(int center, u16* ccd_data)
 		else{
 			en_find = 1;
 			is_find_line = -1;
+			if(emergency_right - emergency_left >= 50 && (emergency_right > 120 || emergency_left < 5)){
+				is_half_line = 1;
+			}
 		}
 		if(emergency_num_last >= 5)
 			return (emergency_left + emergency_right) / 2;

@@ -68,9 +68,9 @@ extern int pharmacy_position[10];
 extern int go_judge;
 int is_ccd_work = 0;
 extern int times;
-int route[4]={0,0,0,0};
+int route[2]={0,0};
 int k = 1;
-
+extern int is_half_line;
 
 /*
 *********************************************************************************************************
@@ -186,6 +186,7 @@ static void vTask_Control(void *pvParameters)
 //			}
 			//出发		
 			targetSpeedY = 700;
+			vTaskDelay(800);
 			is_find_line = -1;
 			//等待CCD识别
 			while(is_find_line != 1){
@@ -213,30 +214,31 @@ static void vTask_Control(void *pvParameters)
 				targetSpeedY = 0;
 				go_judge = 0;
 				times = 3;
+				//读秒后请求上位机数据
 				while(!go_judge){
 					USART_SendData(USART2, 'a');
 					vTaskDelay(1000);
 				}
-				targetSpeedY = 700;
-				//读秒后请求上位机数据
-				/*
-				//多次发送
-				*/
+				targetSpeedY = 700;				
 				//等待CCD识别
+				is_find_line = -1;
 				while(is_find_line != 1){
 					vTaskDelay(5);
 				}
 				//第二个路口
 				//左转
 				if(pharmacy_position[0] == pharmacy_position[3]){
+					route[0] = 1;
 					turn_left();						
 				}
 				//右转
 				else if(pharmacy_position[0] == pharmacy_position[4]){
+					route[0] = 2;
 					turn_right();							
 				}
 				//直行
 				else{
+					k++;
 					//读秒后请求上位机数据
 					printf("GO\r\n");
 					vTaskDelay(1000);
@@ -258,11 +260,12 @@ static void vTask_Control(void *pvParameters)
 					//第三个路口
 					//左转
 					if(pharmacy_position[0] == pharmacy_position[5] || pharmacy_position[0] == pharmacy_position[6]){
+						route[0] = 1;
 						times = 5;
 						turn_left();
 						targetSpeedY = 700;
 						printf("GO\r\n");
-						vTaskDelay(1000);
+						vTaskDelay(1100);
 						is_find_line = -1;
 						//vTaskDelay(200);
 						printf("STOP\r\n");
@@ -274,25 +277,29 @@ static void vTask_Control(void *pvParameters)
 						}
 						targetSpeedY = 500;
 						//等待CCD识别	
+						is_find_line = -1;
 						while(is_find_line != 1){
 							vTaskDelay(5);
 						}		
 						is_find_line = -1;
 						if(pharmacy_position[0] == pharmacy_position[5]){
+							route[1] = 1;
 							turn_left();						
 						}
 						//右转
 						else if(pharmacy_position[0] == pharmacy_position[6]){
+							route[1] = 2;
 							turn_right();							
 						}
 					}
 					//右转
 					else{
+						route[0] = 2;
 						times = 7;
 						turn_right();
 						targetSpeedY = 700;
 						printf("GO\r\n");
-						vTaskDelay(1000);
+						vTaskDelay(1100);
 						is_find_line = -1;
 						//vTaskDelay(200);
 						printf("STOP\r\n");
@@ -303,27 +310,31 @@ static void vTask_Control(void *pvParameters)
 							vTaskDelay(1000);
 						}
 						targetSpeedY = 500;
+						is_find_line = -1;
 						//等待CCD识别
 						while(is_find_line != 1){
 							vTaskDelay(5);
 						}
 						if(pharmacy_position[0] == pharmacy_position[7]){
+							route[1] = 1;
 							turn_left();						
 						}
 						//右转
 						else if(pharmacy_position[0] == pharmacy_position[8]){
+							route[1] = 2;
 							turn_right();							
 						}
 					}
 				}
 			}
+			vTaskDelay(1000);
 			is_find_line = -1;
 			while(is_find_line != 1){
 				vTaskDelay(5);
 			}			
 			is_ccd_work = 0;
 			targetSpeedW = 0;
-			vTaskDelay(100);
+			vTaskDelay(80);
 			targetSpeedY = 0;
 			//返航
 			//------------------放药识别
@@ -347,32 +358,99 @@ static void vTask_Control(void *pvParameters)
 				is_find_line = -1;
 				if(route[0] == 1){
 					turn_right();
-					is_find_line = -1;
-					while(is_find_line != 1){
-						vTaskDelay(5);
-					}			
-					is_ccd_work = 0;
-					targetSpeedW = 0;
-					vTaskDelay(100);
-					targetSpeedY = 0;
 				}
 				else{
 					turn_left();
-					is_find_line = -1;
-					while(is_find_line != 1){
-						vTaskDelay(5);
-					}			
-					is_ccd_work = 0;
-					targetSpeedW = 0;
-					vTaskDelay(100);
-					targetSpeedY = 0;
 				}
+				vTaskDelay(1000);
+				is_find_line = -1;
+				while(is_find_line != 1){
+					vTaskDelay(5);
+				}			
+				is_ccd_work = 0;
+				targetSpeedW = 0;
+				vTaskDelay(80);
+				targetSpeedY = 0;
+			}
+			else if(k == 2){
+				targetSpeedY = 300;	
+				while(is_find_line != 1){
+					vTaskDelay(5);
+				}		
+				is_find_line = -1;
+				if(route[0] == 1){
+					turn_right();
+				}
+				else{
+					turn_left();
+				}
+				targetSpeedY = 500;
+				vTaskDelay(1000);
+				is_find_line = -1;
+				while(is_find_line != 1){
+					vTaskDelay(5);
+				}		
+				targetSpeedY = 300;
+				vTaskDelay(1000);
+				is_find_line = -1;
+				while(is_find_line != 1){
+					vTaskDelay(5);
+				}	
+				is_ccd_work = 0;
+				targetSpeedW = 0;
+				vTaskDelay(80);
+				targetSpeedY = 0;
 			}
 			else if(k == 3){
-			
+				targetSpeedY = 300;	
+				while(is_half_line != 1){
+					vTaskDelay(5);
+				}		
+				is_half_line = 0;
+				if(route[1] == 1){
+					turn_right();
+				}
+				else{
+					turn_left();
+				}
+				targetSpeedY = 500;
+				vTaskDelay(1000);
+				is_half_line = 0;
+				while(is_half_line != 1){
+					vTaskDelay(5);
+				}
+				is_half_line = 0;
+				if(route[0] == 1){
+					turn_right();
+				}
+				else{
+					turn_left();
+				}	
+				targetSpeedY = 700;
+				vTaskDelay(1000);
+				is_find_line = 0;
+				while(is_find_line != 1){
+					vTaskDelay(5);
+				}
+				vTaskDelay(1000);
+				is_find_line = 0;
+				while(is_find_line != 1){
+					vTaskDelay(5);
+				}
+				targetSpeedY = 300;
+				vTaskDelay(1000);
+				is_find_line = -1;
+				while(is_find_line != 1){
+					vTaskDelay(5);
+				}	
+				is_ccd_work = 0;
+				targetSpeedW = 0;
+				vTaskDelay(80);
+				targetSpeedY = 0;
 			}
 			while(1){
 				vTaskDelay(20);
+				
 			}				
 		}
 		vTaskDelay(20);
