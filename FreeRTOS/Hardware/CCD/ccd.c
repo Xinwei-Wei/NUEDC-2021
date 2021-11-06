@@ -228,16 +228,16 @@ int LXS_find_Line(int center, u16* ccd_data)
 	int start_left = 0, start_right = 0;
 	
 //	int threshold = OTSU(ccd_data);
-	int threshold = 5000;
+	int threshold = 2000;
 	
-	for(int i=center-2; i<=center+2; i++)
-	{
-		if(ccd_data[i] > threshold)
-		{
-			emergency_flag = 1;
-			break;
-		}
-	}
+//	for(int i=center-2; i<=center+2; i++)
+//	{
+//		if(ccd_data[i] > threshold)
+//		{
+//			emergency_flag = 1;
+//			break;
+//		}
+//	}
 	
 	if(emergency_flag == 0)
 	{
@@ -309,7 +309,7 @@ int LXS_find_Line(int center, u16* ccd_data)
 	}
 	
 	printf("left:%d    right:%d    middle:%d\r\n",edge_left, edge_right,(edge_left + edge_right) / 2);
-	if(edge_right - edge_left > 60){
+	if(edge_right - edge_left > 90){
 		if(is_find_line == 0){
 			is_find_line = 1;
 		}

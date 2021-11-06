@@ -65,6 +65,7 @@ extern int Target_pharmacy;
 extern int is_find_line;
 int is_drugs;
 extern int pharmacy_position[10];
+extern int go_judge;
 
 
 /*
@@ -142,7 +143,7 @@ static void vTask_USART(void *pvParameters)
 //		TestLED();
 //		vTaskDelayUntil(&xLastWakeTime, 2000);
 //		LED1=!LED1;
-		USART_SendData(USART2,1);
+//		USART_SendData(USART2,1);
 		vTaskDelay(1000);
 	}
 }
@@ -151,13 +152,13 @@ static void vTask_Control(void *pvParameters)
 {
 	TickType_t xLastWakeTime;
 	int i;
-	vTaskDelay(1000);
+	vTaskDelay(3000);
 	
 	for(;;)
 	{
 		//询问第二辆车是否启动
 		for(i=0;i<3;i++){
-			USART_SendData(USART2, 0xff);
+			USART_SendData(USART1, 0xff);
 			vTaskDelay(500);
 		}
 		//双车联动
@@ -166,21 +167,20 @@ static void vTask_Control(void *pvParameters)
 		}
 		//基础任务
 		else{
-			//等待识别
-			for(i=0;i<5;i++){
-				USART_SendData(USART1, 'a');
-				vTaskDelay(50);
+			//等待识别			
+			while(!go_judge){
+				USART_SendData(USART2, 'a');
+				vTaskDelay(1000);
 			}
-			
-			while(!Target_pharmacy){
-				vTaskDelay(20);
-			}
+			printf("%d\r\n",pharmacy_position[0]);
+			vTaskDelay(5000);
 			//等待放置药品
 //			vTaskResume(xHandleTask_Key);
 //			while(!is_drugs){
 //				vTaskDelay(20);
 //			}
 			//出发
+			vTaskResume(xHandleTask_CCD);
 			targetSpeedY = 700;
 			//等待CCD识别
 			while(is_find_line != 1){
@@ -188,17 +188,22 @@ static void vTask_Control(void *pvParameters)
 			}
 			//第一个路口
 			//左转
-			if(Target_pharmacy == pharmacy_position[0]){
+			if(pharmacy_position[0] == pharmacy_position[1]){
 				turn_left();						
 			}
 			//右转
-			else if(Target_pharmacy == pharmacy_position[1]){
+			else if(pharmacy_position[0] == pharmacy_position[2]){
 				turn_right();							
 			}
 			//直行
 			else{
+				printf("GO\r\n");
 				vTaskDelay(1000);
 				is_find_line = -1;
+				vTaskDelay(500);
+				printf("STOP\r\n");
+				targetSpeedY = 0;
+				
 				//读秒后请求上位机数据
 				/*
 				//多次发送
@@ -209,11 +214,11 @@ static void vTask_Control(void *pvParameters)
 				}
 				//第二个路口
 				//左转
-				if(Target_pharmacy == pharmacy_position[2]){
+				if(pharmacy_position[0] == pharmacy_position[3]){
 					turn_left();						
 				}
 				//右转
-				else if(Target_pharmacy == pharmacy_position[3]){
+				else if(pharmacy_position[0] == pharmacy_position[4]){
 					turn_right();							
 				}
 				//直行
@@ -230,7 +235,7 @@ static void vTask_Control(void *pvParameters)
 					}
 					//第三个路口
 					//左转
-					if(Target_pharmacy == pharmacy_position[4] || Target_pharmacy == pharmacy_position[5]){
+					if(pharmacy_position[0] == pharmacy_position[5] || pharmacy_position[0] == pharmacy_position[6]){
 						turn_left();
 						targetSpeedY = 700;
 						is_find_line = -1;
@@ -242,11 +247,11 @@ static void vTask_Control(void *pvParameters)
 						while(is_find_line != 1){
 							vTaskDelay(5);
 						}		
-						if(Target_pharmacy == pharmacy_position[4]){
+						if(pharmacy_position[0] == pharmacy_position[5]){
 							turn_left();						
 						}
 						//右转
-						else if(Target_pharmacy == pharmacy_position[5]){
+						else if(pharmacy_position[0] == pharmacy_position[6]){
 							turn_right();							
 						}
 					}
@@ -263,11 +268,11 @@ static void vTask_Control(void *pvParameters)
 						while(is_find_line != 1){
 							vTaskDelay(5);
 						}
-						if(Target_pharmacy == pharmacy_position[6]){
+						if(pharmacy_position[0] == pharmacy_position[7]){
 							turn_left();						
 						}
 						//右转
-						else if(Target_pharmacy == pharmacy_position[7]){
+						else if(pharmacy_position[0] == pharmacy_position[8]){
 							turn_right();							
 						}
 					}
@@ -284,8 +289,7 @@ static void vTask_Control(void *pvParameters)
 static void vTask_CCD(void *pvParameters)
 {
 	TickType_t xLastWakeTime;
-	
-	vTaskDelay(3000);
+	vTaskSuspend(xHandleTask_CCD);
 	
 	for(;;)
 	{
