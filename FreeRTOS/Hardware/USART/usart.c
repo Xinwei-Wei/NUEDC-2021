@@ -9,7 +9,7 @@
 #endif
   
 int is_car2 = 0;
-int pharmacy_position[10] = {0,1,2,-1,-1,-1,-1,-1,-1,-1};
+int pharmacy_position[10] = {0,1,2,3,4,5,6,7,8,-1};
 int go_judge = 0;
 
 //////////////////////////////////////////////////////////////////
@@ -129,8 +129,8 @@ void USART1_IRQHandler(void)                	//串口1中断服务程序
 	if(USART_GetITStatus(USART1, USART_IT_RXNE) != RESET)  //接收中断(接收到的数据必须是0x0d 0x0a结尾)
 	{
 		Res = USART_ReceiveData(USART1);
-		Target_pharmacy = Res - '0';
-		printf("reserve %d\r\n", Target_pharmacy);
+		pharmacy_position[0] = Res - '0';
+		go_judge = 1;
 	} 
 }
 void USART2_IRQHandler(void)                	//串口1中断服务程序
@@ -143,6 +143,9 @@ void USART2_IRQHandler(void)                	//串口1中断服务程序
 		if(res <= '8' && res >= '1'){
 			pharmacy_position[i] = res - '0';
 			i++;
+			if(i==1){
+				i=3;
+			}
 		}
 		else if(res == '\n'){
 			go_judge = 1;

@@ -173,15 +173,16 @@ static void vTask_Control(void *pvParameters)
 				vTaskDelay(1000);
 			}
 			printf("%d\r\n",pharmacy_position[0]);
-			vTaskDelay(5000);
+			vTaskResume(xHandleTask_CCD);
+			vTaskDelay(3000);
 			//等待放置药品
 //			vTaskResume(xHandleTask_Key);
 //			while(!is_drugs){
 //				vTaskDelay(20);
 //			}
-			//出发
-			vTaskResume(xHandleTask_CCD);
+			//出发		
 			targetSpeedY = 700;
+			is_find_line = -1;
 			//等待CCD识别
 			while(is_find_line != 1){
 				vTaskDelay(5);
@@ -203,7 +204,12 @@ static void vTask_Control(void *pvParameters)
 				vTaskDelay(500);
 				printf("STOP\r\n");
 				targetSpeedY = 0;
-				
+				go_judge = 0;
+				while(!go_judge){
+					USART_SendData(USART2, 'a');
+					vTaskDelay(1000);
+				}
+				targetSpeedY = 500;
 				//读秒后请求上位机数据
 				/*
 				//多次发送
@@ -223,12 +229,19 @@ static void vTask_Control(void *pvParameters)
 				}
 				//直行
 				else{
+					//读秒后请求上位机数据
+					printf("GO\r\n");
 					vTaskDelay(1000);
 					is_find_line = -1;
-					//读秒后请求上位机数据
-					/*
-					//多次发送
-					*/
+					vTaskDelay(1000);
+					printf("STOP\r\n");
+					targetSpeedY = 0;
+					go_judge = 0;
+					while(!go_judge){
+						USART_SendData(USART2, 'a');
+						vTaskDelay(1000);
+					}
+					targetSpeedY = 500;
 					//等待CCD识别
 					while(is_find_line != 1){
 						vTaskDelay(5);
@@ -303,6 +316,7 @@ static void vTask_CCD(void *pvParameters)
 {
 	TickType_t xLastWakeTime;
 	vTaskSuspend(xHandleTask_CCD);
+	vTaskDelay(3000);
 	
 	for(;;)
 	{
