@@ -125,10 +125,12 @@ void uart_putchar(USART_TypeDef* USARTx,unsigned char date)
 
 void USART1_IRQHandler(void)                	//串口1中断服务程序
 {
-	int Res;
+	char Res;
 	if(USART_GetITStatus(USART1, USART_IT_RXNE) != RESET)  //接收中断(接收到的数据必须是0x0d 0x0a结尾)
 	{
-		Target_pharmacy = USART_ReceiveData(USART1) - '0';
+		Res = USART_ReceiveData(USART1);
+		Target_pharmacy = Res - '0';
+		printf("reserve %d\r\n", Target_pharmacy);
 	} 
 }
 void USART2_IRQHandler(void)                	//串口1中断服务程序

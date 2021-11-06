@@ -189,11 +189,11 @@ static void vTask_Control(void *pvParameters)
 			//第一个路口
 			//左转
 			if(Target_pharmacy == pharmacy_position[0]){
-				turn_left();	
+				turn_left();					
 			}
 			//右转
 			else if(Target_pharmacy == pharmacy_position[1]){
-				turn_right();							
+				turn_right();		
 			}
 			//直行
 			else{
@@ -234,6 +234,7 @@ static void vTask_Control(void *pvParameters)
 						turn_left();
 						targetSpeedY = 700;
 						is_find_line = -1;
+						vTaskDelay(1000);
 						//读秒后请求上位机数据
 						/*
 						//多次发送
@@ -242,8 +243,10 @@ static void vTask_Control(void *pvParameters)
 						while(is_find_line != 1){
 							vTaskDelay(5);
 						}		
+						is_find_line = -1;
 						if(Target_pharmacy == pharmacy_position[4]){
-							turn_left();						
+							turn_left();	
+							
 						}
 						//右转
 						else if(Target_pharmacy == pharmacy_position[5]){
@@ -253,8 +256,12 @@ static void vTask_Control(void *pvParameters)
 					//右转
 					else{
 						turn_right();
+//						while(1){
+//							targetSpeedY = 0;
+//						}
 						targetSpeedY = 700;
 						is_find_line = -1;
+						//vTaskDelay(1000);
 						//读秒后请求上位机数据
 						/*
 						//多次发送
@@ -273,6 +280,13 @@ static void vTask_Control(void *pvParameters)
 					}
 				}
 			}
+			is_find_line = -1;
+			while(is_find_line != 1){
+				vTaskDelay(5);
+			}			
+			vTaskSuspend(xHandleTask_CCD);
+			targetSpeedW = 0;
+			targetSpeedY = 0;
 			while(1){
 				vTaskDelay(20);
 			}
@@ -289,10 +303,12 @@ static void vTask_CCD(void *pvParameters)
 	
 	for(;;)
 	{
+		taskENTER_CRITICAL();
 		CCD_Collect();
+		taskEXIT_CRITICAL();
 		ccd1_center = LXS_find_Line(ccd1_center, ccd1_data);
 //		ccd_send_data(USART1, ccd1_data);
-		printf("%d\r\n",ccd1_center);
+//			printf("%d\r\n",ccd1_center);
 		if(ccd1_center > 66 || ccd1_center < 62)
 			targetSpeedW = (ccd1_center - 64) * CCD1_p;
 		else targetSpeedW = 0;
@@ -374,6 +390,7 @@ static void TestLED(void)
 }
 
 static void turn_left(void){
+	printf("left turn\r\n");
 	targetSpeedY = 300;				
 	vTaskSuspend(xHandleTask_CCD);
 	targetSpeedW = -250;
@@ -383,7 +400,7 @@ static void turn_left(void){
 }
 
 static void turn_right(void){
-	printf("start turn\r\n");
+	printf("right turn\r\n");
 	targetSpeedY = 300;				
 	vTaskSuspend(xHandleTask_CCD);
 	targetSpeedW = 250;

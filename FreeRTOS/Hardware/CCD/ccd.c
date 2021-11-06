@@ -28,6 +28,7 @@ int longest = 1000;
 int is_find_line = -1;
 extern int pharmacy_position[10];
 extern int Target_pharmacy;
+int en_find = 1;
 
 
 void CCD_Init(void)
@@ -346,15 +347,20 @@ int LXS_find_Line(int center, u16* ccd_data)
 				}
 			}
 		}
-		if(emergency_num_last>=50){
-			if(is_find_line == -1){
-				is_find_line = 0;
-			}
-			else if(is_find_line == 0){
-				is_find_line = 1;
+		printf("left:%d    right:%d    middle:%d\r\n",emergency_left, emergency_right,emergency_num_last);
+		if(emergency_right - emergency_left >= 100 || emergency_right - emergency_left<5){
+			if(en_find){
+				if(is_find_line == -1){
+					is_find_line = 0;
+				}
+				else if(is_find_line == 0){
+					is_find_line = 1;
+					en_find = 0;
+				}
 			}
 		}
 		else{
+			en_find = 1;
 			is_find_line = -1;
 		}
 		if(emergency_num_last >= 5)
