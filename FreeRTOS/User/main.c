@@ -66,6 +66,8 @@ extern int is_find_line;
 int is_drugs;
 extern int pharmacy_position[10];
 extern int go_judge;
+int is_ccd_work = 0;
+extern int times;
 
 
 /*
@@ -137,13 +139,13 @@ static void vTask_USART(void *pvParameters)
 	TickType_t xLastWakeTime;
 	
 	vTaskDelay(1000);
-	
+	int i;
 	for(;;)
 	{
-//		TestLED();
-//		vTaskDelayUntil(&xLastWakeTime, 2000);
-//		LED1=!LED1;
-//		USART_SendData(USART2,1);
+//		for(i=0;i<9;i++){
+//			printf("%d ", pharmacy_position[i]);
+//		}
+//		printf("\r\n");
 		vTaskDelay(1000);
 	}
 }
@@ -170,11 +172,11 @@ static void vTask_Control(void *pvParameters)
 			//等待识别			
 			while(!go_judge){
 				USART_SendData(USART2, 'a');
+				USART_SendData(USART1, 'a');
 				vTaskDelay(1000);
 			}
 			printf("%d\r\n",pharmacy_position[0]);
-			vTaskResume(xHandleTask_CCD);
-			vTaskDelay(3000);
+			is_ccd_work = 1;
 			//等待放置药品
 //			vTaskResume(xHandleTask_Key);
 //			while(!is_drugs){
@@ -205,11 +207,12 @@ static void vTask_Control(void *pvParameters)
 				printf("STOP\r\n");
 				targetSpeedY = 0;
 				go_judge = 0;
+				times = 3;
 				while(!go_judge){
 					USART_SendData(USART2, 'a');
 					vTaskDelay(1000);
 				}
-				targetSpeedY = 500;
+				targetSpeedY = 700;
 				//读秒后请求上位机数据
 				/*
 				//多次发送
@@ -233,15 +236,16 @@ static void vTask_Control(void *pvParameters)
 					printf("GO\r\n");
 					vTaskDelay(1000);
 					is_find_line = -1;
-					vTaskDelay(1000);
+					vTaskDelay(500);
 					printf("STOP\r\n");
 					targetSpeedY = 0;
 					go_judge = 0;
+					times = 5;
 					while(!go_judge){
 						USART_SendData(USART2, 'a');
 						vTaskDelay(1000);
 					}
-					targetSpeedY = 500;
+					targetSpeedY = 300;
 					//等待CCD识别
 					while(is_find_line != 1){
 						vTaskDelay(5);
@@ -249,14 +253,21 @@ static void vTask_Control(void *pvParameters)
 					//第三个路口
 					//左转
 					if(pharmacy_position[0] == pharmacy_position[5] || pharmacy_position[0] == pharmacy_position[6]){
+						times = 5;
 						turn_left();
 						targetSpeedY = 700;
-						is_find_line = -1;
+						printf("GO\r\n");
 						vTaskDelay(1000);
-						//读秒后请求上位机数据
-						/*
-						//多次发送
-						*/
+						is_find_line = -1;
+						//vTaskDelay(200);
+						printf("STOP\r\n");
+						targetSpeedY = 0;
+						go_judge = 0;
+						while(!go_judge){
+							USART_SendData(USART2, 'a');
+							vTaskDelay(1000);
+						}
+						targetSpeedY = 500;
 						//等待CCD识别	
 						while(is_find_line != 1){
 							vTaskDelay(5);
@@ -272,17 +283,21 @@ static void vTask_Control(void *pvParameters)
 					}
 					//右转
 					else{
+						times = 7;
 						turn_right();
-//						while(1){
-//							targetSpeedY = 0;
-//						}
 						targetSpeedY = 700;
+						printf("GO\r\n");
+						vTaskDelay(1000);
 						is_find_line = -1;
-						//vTaskDelay(1000);
-						//读秒后请求上位机数据
-						/*
-						//多次发送
-						*/
+						//vTaskDelay(200);
+						printf("STOP\r\n");
+						targetSpeedY = 0;
+						go_judge = 0;
+						while(!go_judge){
+							USART_SendData(USART2, 'a');
+							vTaskDelay(1000);
+						}
+						targetSpeedY = 500;
 						//等待CCD识别
 						while(is_find_line != 1){
 							vTaskDelay(5);
@@ -301,8 +316,9 @@ static void vTask_Control(void *pvParameters)
 			while(is_find_line != 1){
 				vTaskDelay(5);
 			}			
-			vTaskSuspend(xHandleTask_CCD);
+			is_ccd_work = 0;
 			targetSpeedW = 0;
+			vTaskDelay(50);
 			targetSpeedY = 0;
 			while(1){
 				vTaskDelay(20);
@@ -315,7 +331,6 @@ static void vTask_Control(void *pvParameters)
 static void vTask_CCD(void *pvParameters)
 {
 	TickType_t xLastWakeTime;
-	vTaskSuspend(xHandleTask_CCD);
 	vTaskDelay(3000);
 	
 	for(;;)
@@ -323,12 +338,14 @@ static void vTask_CCD(void *pvParameters)
 		taskENTER_CRITICAL();
 		CCD_Collect();
 		taskEXIT_CRITICAL();
-		ccd1_center = LXS_find_Line(ccd1_center, ccd1_data);
-//		ccd_send_data(USART1, ccd1_data);
-//			printf("%d\r\n",ccd1_center);
-		if(ccd1_center > 66 || ccd1_center < 62)
-			targetSpeedW = (ccd1_center - 64) * CCD1_p;
-		else targetSpeedW = 0;
+		if(is_ccd_work){
+			ccd1_center = LXS_find_Line(ccd1_center, ccd1_data);
+	//		ccd_send_data(USART1, ccd1_data);
+	//		printf("%d\r\n",ccd1_center);
+			if(ccd1_center > 66 || ccd1_center < 62)
+				targetSpeedW = (ccd1_center - 64) * CCD1_p;
+			else targetSpeedW = 0;
+		}
 		vTaskDelay(10);
 	}
 }
@@ -409,22 +426,23 @@ static void TestLED(void)
 static void turn_left(void){
 	printf("left turn\r\n");
 	targetSpeedY = 300;				
-	vTaskSuspend(xHandleTask_CCD);
+	is_ccd_work = 0;
 	targetSpeedW = -250;
 	vTaskDelay(700);
 	targetSpeedW = 0;
-	vTaskResume(xHandleTask_CCD);
+	is_ccd_work = 1;
 }
 
 static void turn_right(void){
 	printf("right turn\r\n");
 	targetSpeedY = 300;				
-	vTaskSuspend(xHandleTask_CCD);
+	is_ccd_work = 0;
 	targetSpeedW = 250;
 	vTaskDelay(700);
 	targetSpeedW = 0;
-	vTaskResume(xHandleTask_CCD);
+	is_ccd_work = 1;
 }
+
 
 /*
 *********************************************************************************************************

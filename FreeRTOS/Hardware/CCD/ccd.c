@@ -282,7 +282,7 @@ int LXS_find_Line(int center, u16* ccd_data)
 	{
 		ccd_data[126] = ccd_data[127] = 4095;
 		gray_left_last = gray_avr(ccd_data[0], ccd_data[1], ccd_data[2]);
-		for(int i = 1; i <= 126; i++)
+		for(int i = 1; i <= 125; i++)
 		{
 			gray_left = gray_avr(ccd_data[i-1], ccd_data[i], ccd_data[i+1]);
 			if(gray_left_last - gray_left > threshold_Delta)	//ÏÂ½µÑØ
@@ -364,11 +364,11 @@ int LXS_find_Line(int center, u16* ccd_data)
 			is_find_line = -1;
 		}
 		if(emergency_num_last >= 5)
-			center = (emergency_left + emergency_right) / 2;
+			return (emergency_left + emergency_right) / 2;
 		
 //		KalmanFilter(center, 0.8, 0.2);
 		
-		return center;
+		return 64;
 	}
 	
 //	if(emergency_flag == 2)

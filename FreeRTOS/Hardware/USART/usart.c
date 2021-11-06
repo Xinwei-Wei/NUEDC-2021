@@ -9,8 +9,9 @@
 #endif
   
 int is_car2 = 0;
-int pharmacy_position[10] = {0,1,2,3,4,5,6,7,8,-1};
+int pharmacy_position[10] = {0,1,2,-1,-1,-1,-1,-1,-1,-1};
 int go_judge = 0;
+int times = 0;
 
 //////////////////////////////////////////////////////////////////
 //加入以下代码,支持printf函数,而不需要选择use MicroLIB	  
@@ -125,26 +126,35 @@ void uart_putchar(USART_TypeDef* USARTx,unsigned char date)
 
 void USART1_IRQHandler(void)                	//串口1中断服务程序
 {
-	char Res;
-	if(USART_GetITStatus(USART1, USART_IT_RXNE) != RESET)  //接收中断(接收到的数据必须是0x0d 0x0a结尾)
-	{
-		Res = USART_ReceiveData(USART1);
-		pharmacy_position[0] = Res - '0';
-		go_judge = 1;
-	} 
-}
-void USART2_IRQHandler(void)                	//串口1中断服务程序
-{
 	static int i = 0;
 	char res;
-	if(USART_GetITStatus(USART2, USART_IT_RXNE) != RESET) //??????
-    {
-        res = USART_ReceiveData(USART2);
+	if(USART_GetITStatus(USART1, USART_IT_RXNE) != RESET)  //接收中断(接收到的数据必须是0x0d 0x0a结尾)
+	{
+		res = USART_ReceiveData(USART1);
 		if(res <= '8' && res >= '1'){
 			pharmacy_position[i] = res - '0';
 			i++;
 			if(i==1){
 				i=3;
+			}
+		}
+		else if(res == '\n'){
+			go_judge = 1;
+		}
+	} 
+}
+void USART2_IRQHandler(void)                	//串口1中断服务程序
+{
+	char res;
+	if(USART_GetITStatus(USART2, USART_IT_RXNE) != RESET) //??????
+    {
+        res = USART_ReceiveData(USART2);
+		if(res <= '8' && res >= '1'){
+			pharmacy_position[times] = res - '0';
+			//printf("receive %d\r\n",pharmacy_position[times]);
+			times++;
+			if(times == 1){
+				times = 3;
 			}
 		}
 		else if(res == '\n'){
