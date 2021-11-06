@@ -132,10 +132,11 @@ void USART1_IRQHandler(void)                	//串口1中断服务程序
 	{
 		res = USART_ReceiveData(USART1);
 		if(res <= '8' && res >= '1'){
-			pharmacy_position[i] = res - '0';
-			i++;
-			if(i==1){
-				i=3;
+			pharmacy_position[times] = res - '0';
+			//printf("receive %d\r\n",pharmacy_position[times]);
+			times++;
+			if(times == 1){
+				times = 3;
 			}
 		}
 		else if(res == '\n'){
@@ -149,7 +150,7 @@ void USART2_IRQHandler(void)                	//串口1中断服务程序
 	if(USART_GetITStatus(USART2, USART_IT_RXNE) != RESET) //??????
     {
         res = USART_ReceiveData(USART2);
-		if(res <= '8' && res >= '1'){
+		if(res <= '8' && res >= '0'){
 			pharmacy_position[times] = res - '0';
 			//printf("receive %d\r\n",pharmacy_position[times]);
 			times++;

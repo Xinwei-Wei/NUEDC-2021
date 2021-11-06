@@ -68,6 +68,8 @@ extern int pharmacy_position[10];
 extern int go_judge;
 int is_ccd_work = 0;
 extern int times;
+int route[4]={0,0,0,0};
+int k = 1;
 
 
 /*
@@ -192,14 +194,17 @@ static void vTask_Control(void *pvParameters)
 			//第一个路口
 			//左转
 			if(pharmacy_position[0] == pharmacy_position[1]){
+				route[0] = 1;
 				turn_left();						
 			}
 			//右转
 			else if(pharmacy_position[0] == pharmacy_position[2]){
+				route[0] = 2;
 				turn_right();							
 			}
 			//直行
 			else{
+				k++;
 				printf("GO\r\n");
 				vTaskDelay(1000);
 				is_find_line = -1;
@@ -318,11 +323,57 @@ static void vTask_Control(void *pvParameters)
 			}			
 			is_ccd_work = 0;
 			targetSpeedW = 0;
-			vTaskDelay(50);
+			vTaskDelay(100);
 			targetSpeedY = 0;
+			//返航
+			//------------------放药识别
+			vTaskDelay(3000);
+			//------------------
+			targetSpeedW = -250;
+			vTaskDelay(1500);
+			targetSpeedW = 0;
+			is_ccd_work = 1;
+			vTaskDelay(1000);
+			targetSpeedY = 500;
+			
+			vTaskDelay(700);
+			targetSpeedY = 0;
+			
+			if(k == 1){
+				targetSpeedY = 300;	
+				while(is_find_line != 1){
+					vTaskDelay(5);
+				}		
+				is_find_line = -1;
+				if(route[0] == 1){
+					turn_right();
+					is_find_line = -1;
+					while(is_find_line != 1){
+						vTaskDelay(5);
+					}			
+					is_ccd_work = 0;
+					targetSpeedW = 0;
+					vTaskDelay(100);
+					targetSpeedY = 0;
+				}
+				else{
+					turn_left();
+					is_find_line = -1;
+					while(is_find_line != 1){
+						vTaskDelay(5);
+					}			
+					is_ccd_work = 0;
+					targetSpeedW = 0;
+					vTaskDelay(100);
+					targetSpeedY = 0;
+				}
+			}
+			else if(k == 3){
+			
+			}
 			while(1){
 				vTaskDelay(20);
-			}
+			}				
 		}
 		vTaskDelay(20);
 	}
@@ -331,7 +382,7 @@ static void vTask_Control(void *pvParameters)
 static void vTask_CCD(void *pvParameters)
 {
 	TickType_t xLastWakeTime;
-	vTaskDelay(3000);
+	vTaskDelay(2000);
 	
 	for(;;)
 	{
@@ -340,7 +391,7 @@ static void vTask_CCD(void *pvParameters)
 		taskEXIT_CRITICAL();
 		if(is_ccd_work){
 			ccd1_center = LXS_find_Line(ccd1_center, ccd1_data);
-	//		ccd_send_data(USART1, ccd1_data);
+//			ccd_send_data(USART1, ccd1_data);
 	//		printf("%d\r\n",ccd1_center);
 			if(ccd1_center > 66 || ccd1_center < 62)
 				targetSpeedW = (ccd1_center - 64) * CCD1_p;

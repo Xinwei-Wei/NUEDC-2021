@@ -16,7 +16,7 @@ float voltage1, voltage0;
 float v;
 float sum, SUM;
 float val[50], max, min, MAX, MIN;
-int j, k, l;
+int j, l;
 float value_current[12];
 u8 Last_count;
 
