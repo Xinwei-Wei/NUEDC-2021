@@ -16,7 +16,7 @@
 #define threshold1  2500
 #define line3_wide  30
 #define line5_wide  70
-#define threshold_Delta  500
+#define threshold_Delta  300
 
 
 u8 ccd_finish_flag;
@@ -224,7 +224,7 @@ int gray_avr(int gray0, int gray1, int gray2)
 int LXS_find_Line(int center, u16* ccd_data)
 {
 	int emergency_flag = 1, edge_count = 0, edge_left = 0, edge_right = 127, gray_left = 0, gray_right = 0, gray_left_last = 0, gray_right_last = 0;
-	int black_num = 0, emergency_num = 0, emergency_num_last = 0, emergency_left = 0, emergency_right = 127, emergency_left_last = 0;
+	int black_num = 0, emergency_count = 1, emergency_num = 0, emergency_num_last = 0, emergency_left = 0, emergency_right = 127, emergency_left_last = 0;
 	float black_perc = 0;
 	int edge_left_flag = 0, edge_right_flag = 1;	//左右边界重捕获指示
 	
@@ -279,9 +279,34 @@ int LXS_find_Line(int center, u16* ccd_data)
 	
 	if(emergency_flag == 1)
 	{
-		ccd_data[1] = ccd_data[126] = 3000;
+		ccd_data[126] = ccd_data[127] = 4095;
 		gray_left_last = gray_avr(ccd_data[0], ccd_data[1], ccd_data[2]);
 		for(int i = 1; i <= 126; i++)
+		{
+			gray_left = gray_avr(ccd_data[i-1], ccd_data[i], ccd_data[i+1]);
+			if(gray_left_last - gray_left > threshold_Delta)	//下降沿
+			{
+				edge_left_flag = 1;
+				edge_right_flag = 0;
+				gray_right_last = gray_left;
+				emergency_left_last = i;
+				break;
+			}
+			if(gray_left - gray_left_last > threshold_Delta)	//上升沿
+			{
+				edge_left_flag = 0;
+				edge_right_flag = 1;
+				emergency_right = i;
+				emergency_num_last = emergency_num;
+				gray_left_last = gray_left;
+				break;
+			}
+			emergency_num++;
+			emergency_count++;
+			gray_left_last = gray_left;
+		}
+		emergency_num = 0;
+		for(int i = emergency_count; i <= 126; i++)
 		{
 			if(edge_right_flag == 1)
 			{
