@@ -205,7 +205,7 @@ static void vTask_Control(void *pvParameters)
 				*/
 				//等待CCD识别
 				while(is_find_line != 1){
-					vTaskDelay(20);
+					vTaskDelay(5);
 				}
 				//第二个路口
 				//左转
@@ -226,7 +226,7 @@ static void vTask_Control(void *pvParameters)
 					*/
 					//等待CCD识别
 					while(is_find_line != 1){
-						vTaskDelay(20);
+						vTaskDelay(5);
 					}
 					//第三个路口
 					//左转
@@ -240,7 +240,7 @@ static void vTask_Control(void *pvParameters)
 						*/
 						//等待CCD识别	
 						while(is_find_line != 1){
-							vTaskDelay(20);
+							vTaskDelay(5);
 						}		
 						if(Target_pharmacy == pharmacy_position[4]){
 							turn_left();						
@@ -261,7 +261,7 @@ static void vTask_Control(void *pvParameters)
 						*/
 						//等待CCD识别
 						while(is_find_line != 1){
-							vTaskDelay(20);
+							vTaskDelay(5);
 						}
 						if(Target_pharmacy == pharmacy_position[6]){
 							turn_left();						
@@ -374,19 +374,21 @@ static void TestLED(void)
 }
 
 static void turn_left(void){
+	printf("turn_left\r\n");
 	targetSpeedY = 300;				
 	vTaskSuspend(xHandleTask_CCD);
 	targetSpeedW = -250;
-	vTaskDelay(1000);
+	vTaskDelay(800);
 	targetSpeedW = 0;
 	vTaskResume(xHandleTask_CCD);
 }
 
 static void turn_right(void){
+	printf("turn_right\r\n");
 	targetSpeedY = 300;				
 	vTaskSuspend(xHandleTask_CCD);
-	targetSpeedW = -250;
-	vTaskDelay(1000);
+	targetSpeedW = 250;
+	vTaskDelay(800);
 	targetSpeedW = 0;
 	vTaskResume(xHandleTask_CCD);
 }
