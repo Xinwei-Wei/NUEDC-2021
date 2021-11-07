@@ -184,6 +184,16 @@ static void vTask_Control(void *pvParameters)
 //			while(!is_drugs){
 //				vTaskDelay(20);
 //			}
+			while(1){
+				if(!PEin(4)){
+					vTaskDelay(20);
+					if(!PEin(4)){
+						break;
+					}
+				}
+				vTaskDelay(20);
+			}
+			vTaskDelay(1000);
 			//出发		
 			targetSpeedY = 700;
 			vTaskDelay(800);
@@ -243,7 +253,7 @@ static void vTask_Control(void *pvParameters)
 					printf("GO\r\n");
 					vTaskDelay(1000);
 					is_find_line = -1;
-					vTaskDelay(500);
+					vTaskDelay(300);
 					printf("STOP\r\n");
 					targetSpeedY = 0;
 					go_judge = 0;
@@ -338,7 +348,16 @@ static void vTask_Control(void *pvParameters)
 			targetSpeedY = 0;
 			//返航
 			//------------------放药识别
-			vTaskDelay(3000);
+			while(1){
+				if(PEin(4)){
+					vTaskDelay(20);
+					if(PEin(4)){
+						break;
+					}
+				}
+				vTaskDelay(20);
+			}
+			vTaskDelay(1000);
 			//------------------
 			targetSpeedW = -250;
 			vTaskDelay(1500);
@@ -527,13 +546,15 @@ static void vTask_Key(void *pvParameters)
 	vTaskSuspend(xHandleTask_Key);
 	for(;;)
 	{
-		if(!PEin(3)){
-			vTaskDelay(20);
-			if(!PEin(3)){
-				is_drugs = 1;
-				vTaskSuspend(xHandleTask_Key);
-			}
-		}
+//		if(!PEin(4)){
+//			vTaskDelay(20);
+//			if(!PEin(4)){
+//				is_drugs = 1;
+//				vTaskSuspend(xHandleTask_Key);
+//			}
+//		}
+//		else{
+//		}
 		vTaskDelay(20);
 	}
 }

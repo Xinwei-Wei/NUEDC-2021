@@ -226,12 +226,21 @@ int gray_avr(int gray0, int gray1, int gray2)
 int LXS_find_Line(int center, u16* ccd_data)
 {
 	int emergency_flag = 1, edge_count = 0, edge_left = 0, edge_right = 127, gray_left = 0, gray_right = 0, gray_left_last = 0, gray_right_last = 0;
-	int black_num = 0, emergency_count = 1, emergency_num = 0, emergency_num_last = 0, emergency_left = 0, emergency_right = 127, emergency_left_last = 0;
+	int black_num = 0, emergency_count = 1, emergency_num = 0, emergency_num_last = 0, emergency_left = 0, emergency_right = 127, emergency_left_last = 0, white_flag = 1;
 	float black_perc = 0;
 	int edge_left_flag = 0, edge_right_flag = 1;	//左右边界重捕获指示
 	
 //	int threshold = OTSU(ccd_data);
 	int threshold = 1500;
+	
+	for(int i = 0; i <= 10; i++)
+	{
+		if(ccd1_data[i] < 4000)
+		{
+			white_flag = 0;
+			break;
+		}
+	}
 	
 //	for(int i = 0; i < 128; i++)
 //	{
@@ -349,7 +358,8 @@ int LXS_find_Line(int center, u16* ccd_data)
 			}
 		}
 		printf("left:%d    right:%d    middle:%d\r\n",emergency_left, emergency_right,emergency_num_last);
-		if(emergency_right - emergency_left >= 100 || emergency_right - emergency_left<5){
+		
+		if((emergency_right - emergency_left >= 100 || emergency_right - emergency_left<5) && white_flag == 0){
 			if(en_find){
 				if(is_find_line == -1){
 					is_find_line = 0;
@@ -368,11 +378,12 @@ int LXS_find_Line(int center, u16* ccd_data)
 			}
 		}
 		if(emergency_num_last >= 5)
-			return (emergency_left + emergency_right) / 2;
+			center = (emergency_left + emergency_right) / 2;
+		else center = 64;
 		
-//		KalmanFilter(center, 0.8, 0.2);
+		KalmanFilter(center, 0.8, 0.2);
 		
-		return 64;
+		return center;
 	}
 	
 //	if(emergency_flag == 2)

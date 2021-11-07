@@ -404,6 +404,11 @@
           <GroupName>Hardware</GroupName>
           <Files>
             <File>
+              <FileName>encoder.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Hardware\Encoder\encoder.c</FilePath>
+            </File>
+            <File>
               <FileName>adc.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Hardware\ADC\adc.c</FilePath>
@@ -417,11 +422,6 @@
               <FileName>ccd.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Hardware\CCD\ccd.c</FilePath>
-            </File>
-            <File>
-              <FileName>encoder.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\Hardware\Encoder\encoder.c</FilePath>
             </File>
             <File>
               <FileName>exti.c</FileName>
